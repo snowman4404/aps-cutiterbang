@@ -60,5 +60,3 @@ export function buatApp(db: Db, opsi: OpsiApp = {}) {
 
   return app
 }
-
-export type AppType = ReturnType<typeof buatApp>

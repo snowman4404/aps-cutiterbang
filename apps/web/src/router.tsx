@@ -19,11 +19,10 @@ import HalamanTiketDipesankan from './tiket/HalamanTiketDipesankan.tsx'
 import HalamanTiketSaya from './tiket/HalamanTiketSaya.tsx'
 import HalamanValidasiTiket from './tiket/HalamanValidasiTiket.tsx'
 import Beranda from './halaman/Beranda.tsx'
-import Placeholder from './halaman/Placeholder.tsx'
 import Layout from './shell/Layout.tsx'
 import { MENU, peranTerbatas } from './shell/menu.ts'
 
-// Halaman yang sudah dibangun menggantikan Placeholder (kunci = path menu).
+// Halaman untuk setiap item MENU (kunci = path menu).
 const HALAMAN: Record<string, ReactNode> = {
   '/cuti/pengajuan': <HalamanDaftarPengajuanCuti />,
   '/cuti/riwayat': <HalamanRiwayatCuti />,
@@ -67,7 +66,8 @@ export const router = createBrowserRouter([
       // Panel simulator demo (Fase 7): bukan use case, jadi bukan item MENU; tautannya di sidebar bila reset/simulator aktif.
       { path: '/simulator', element: <HalamanSimulator /> },
       ...MENU.map((item) => {
-        const halaman = HALAMAN[item.path] ?? <Placeholder item={item} />
+        const halaman = HALAMAN[item.path]
+        if (!halaman) throw new Error(`Tidak ada halaman untuk menu ${item.path}`)
         const terbatas = peranTerbatas(item)
         return {
           path: item.path,

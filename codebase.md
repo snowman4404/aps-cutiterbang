@@ -25,14 +25,13 @@ What each file does. Update this file whenever you add, move, rename or delete a
 | `e2e/akses.spec.ts` | Phase 1 e2e: login per role and role nav, `?next=` redirect, no-access message, sign-up, logout, reset. Calls `POST /api/dev/reset` before each test |
 | `e2e/tema.spec.ts` | Three-state theme toggle (Perangkat -> Terang -> Gelap -> Perangkat): `data-theme`, localStorage key and persistence after reload; Perangkat follows `prefers-color-scheme` |
 | `e2e/visual.spec.ts` | Style-review screenshots to `.taste-skill/app-shots/` (gitignored) of every screen per role (incl. `/simulator`), at 1440 and 390 px, light and dark, each asserting no horizontal scroll; run with `npm run test:visual` (Playwright project `visual`) |
-| `design/mockups/` | Static style mockups A/B/C; A (`clean.*`) is the chosen reference |
+| `design/mockups/` | Static mockup of the chosen style A (`clean.html` with `clean.css`, `layout.css`, `data.js`, `render.js`): the visual reference. Styles B and C were removed after the choice (in git history) |
 
 ## packages/domain (pure logic, shared)
 
 | File | Purpose |
 |---|---|
 | `src/index.ts` | Package entry; exports `NAMA_APLIKASI` and re-exports `umum/`, `akses/`, `cuti/` and `tiket/` |
-| `src/index.test.ts` | Placeholder unit test |
 | `src/akses/index.ts` | Barrel for the `akses` module (must not import cuti/tiket) |
 | `src/akses/akun.ts` | `AkunPublik` (id, nama, email, peran): the public account shape shared by API and web |
 | `src/akses/demo.ts` | Pure demo data: `SANDI_DEMO` and `AKUN_DEMO` (nama, email, peran); used by the API seed and the login page demo box |
@@ -147,7 +146,7 @@ What each file does. Update this file whenever you add, move, rename or delete a
 | `vite.config.ts` | React + Tailwind plugins; proxies `/api` to port 8787 |
 | `src/main.tsx` | React entry; imports the self-hosted `@fontsource` IBM Plex Sans (400/500/600) and Mono (400/500) |
 | `src/App.tsx` | `AuthProvider` + `RouterProvider` |
-| `src/router.tsx` | `createBrowserRouter`: shell layout, `/`, `/masuk`, `/daftar`, and one guarded route per `MENU` item (built page from `HALAMAN`, else placeholder), plus `/pesan/:idPenerbangan` (guarded `CalonPenumpang`) and `/travel/pesan/:idPenerbangan` (guarded `ManajerTravel`), neither in `MENU`; `HALAMAN` also maps `/profil`, `/validasi-tiket`, `/penerbangan/multi`, `/travel/cari`, `/travel/status`, `/travel/cek-kode` and `/tiket-dipesankan`; `/simulator` (demo panel, not a `MENU` item, no role guard) |
+| `src/router.tsx` | `createBrowserRouter`: shell layout, `/`, `/masuk`, `/daftar`, and one guarded route per `MENU` item (page from `HALAMAN`; a `MENU` item without one throws at startup), plus `/pesan/:idPenerbangan` (guarded `CalonPenumpang`) and `/travel/pesan/:idPenerbangan` (guarded `ManajerTravel`), neither in `MENU`; `HALAMAN` also maps `/profil`, `/validasi-tiket`, `/penerbangan/multi`, `/travel/cari`, `/travel/status`, `/travel/cek-kode` and `/tiket-dipesankan`; `/simulator` (demo panel, not a `MENU` item, no role guard) |
 | `src/index.css` | Style-A tokens (light/dark, `:root` + `data-theme`), Tailwind `@theme` mapping (colours, radii, `desk` breakpoint 1101px, fonts), base styles, `.tabel` table styles (below 640px each row stacks into label/value lines from each `td`'s `data-label`, which pages keep in a `KOLOM` const shared with the `th`; empty cells hidden), size tokens (`max-w-form`, `max-w-dialog`, `sm:w-kolom-tanggal`, `sm:pt-label-field`, `text-stat`) and `@utility` column layouts (`grid-cols-ringkasan`, `grid-cols-cari`, `grid-cols-cari-pengunjung`) |
 | `src/lib/api.ts` | `panggil()` fetch helper returning status + JSON; module-neutral (akses, cuti, tiket, shell all use it) |
 | `src/akses/AuthContext.tsx` | `AuthProvider` / `useAuth`: `akun` (domain `AkunPublik`), `masuk`, `daftar`, `keluar`, `muatUlang` (loads `/api/auth/saya` on start) |
@@ -194,7 +193,6 @@ What each file does. Update this file whenever you add, move, rename or delete a
 | `src/shell/useMenuPonsel.ts` | Phone menu open state, scoped to the current route so navigating closes it |
 | `src/shell/useResetDemo.ts` | Reads `resetAktif` from `/api/health`; `resetData()` calls `POST /dev/reset`, reloads the session and goes home |
 | `src/halaman/Beranda.tsx` | Home: greeting + role menu as grouped rows (label + small grey US code), or intro + Masuk/Daftar + the public menu links when logged out |
-| `src/halaman/Placeholder.tsx` | "Belum tersedia" page used for menu items without a screen yet (no mention of build phases) |
 | `src/ui/index.ts` | Barrel for the UI kit |
 | `src/ui/README.md` | UI kit components and house style rules |
 | `src/ui/Button.tsx` | `Button`, `LinkTombol`, `kelasTombol` (primary/secondary/ghost/text/tautan; 32/38px; `ikon` size requires `aria-label`) |

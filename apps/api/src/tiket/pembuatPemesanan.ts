@@ -64,5 +64,3 @@ export function buatPembuatPemesanan(
 
   return { buatKodeUnik, buat }
 }
-
-export type PembuatPemesanan = ReturnType<typeof buatPembuatPemesanan>
