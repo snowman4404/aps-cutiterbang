@@ -41,35 +41,36 @@ export type HasilAlokasi = 'diterima' | 'ditolak'
 
 /** Pelanggaran UNIQUE pada kode_normal (inv KodeUnik, G3): dilaporkan oleh SQLite pada alokasi_kursi atau pemesanan. */
 export function adalahKodeBentrok(galat: unknown): boolean {
-  const teks = (e: unknown): string => (e instanceof Error ? `${e.message} ${teks((e as { cause?: unknown }).cause)}` : '')
-  const t = teks(galat)
-  return /UNIQUE constraint failed/i.test(t) && /kode_normal/.test(t)
+  const teks = (sebab: unknown): string =>
+    sebab instanceof Error ? `${sebab.message} ${teks((sebab as { cause?: unknown }).cause)}` : ''
+  const pesan = teks(galat)
+  return /UNIQUE constraint failed/i.test(pesan) && /kode_normal/.test(pesan)
 }
 
 export function antarmukaPemesanan(db: Db) {
   async function lengkapi(baris: (typeof pemesanan.$inferSelect)[]): Promise<PemesananBaris[]> {
     if (baris.length === 0) return []
-    const pn = await db
+    const daftarPenumpang = await db
       .select()
       .from(penumpang)
-      .where(inArray(penumpang.pemesananId, baris.map((b) => b.id)))
+      .where(inArray(penumpang.pemesananId, baris.map((pesanan) => pesanan.id)))
       .orderBy(penumpang.id)
-    return baris.map((b) => ({
-      id: b.id,
-      kode: b.kode,
-      status: b.status,
-      waktuDibuat: b.waktuDibuat,
-      penerbanganId: b.penerbanganId,
-      pemesanId: b.pemesanId,
-      penumpang: pn
-        .filter((p) => p.pemesananId === b.id)
-        .map((p) => ({
-          akunId: p.akunId,
-          namaLengkap: p.namaLengkap,
-          nomorIdentitas: p.nomorIdentitas,
-          tanggalLahir: p.tanggalLahir,
-          nomorTelepon: p.nomorTelepon,
-          email: p.email,
+    return baris.map((pesanan) => ({
+      id: pesanan.id,
+      kode: pesanan.kode,
+      status: pesanan.status,
+      waktuDibuat: pesanan.waktuDibuat,
+      penerbanganId: pesanan.penerbanganId,
+      pemesanId: pesanan.pemesanId,
+      penumpang: daftarPenumpang
+        .filter((orang) => orang.pemesananId === pesanan.id)
+        .map((orang) => ({
+          akunId: orang.akunId,
+          namaLengkap: orang.namaLengkap,
+          nomorIdentitas: orang.nomorIdentitas,
+          tanggalLahir: orang.tanggalLahir,
+          nomorTelepon: orang.nomorTelepon,
+          email: orang.email,
         })),
     }))
   }

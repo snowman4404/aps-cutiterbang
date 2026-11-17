@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { validasiPeriode, type GalatPeriode, type StatusPengajuanCuti } from '@cutiterbang/domain'
-import { panggil } from '../akses/api.ts'
+import { panggil } from '../lib/api.ts'
 import { PESAN_GALAT_UMUM } from '../lib/useMuat.ts'
 import { Alert, Button, Card, DataTable, EmptyState, Field, Input, PageTitle, Pill } from '../ui/index.ts'
 import { formatTanggal } from '../lib/tanggal.ts'
@@ -29,8 +29,8 @@ export default function HalamanDaftarPengajuanCuti() {
   const [sibuk, setSibuk] = useState(false)
   const permintaanTerakhir = useRef(0) // hanya respons permintaan terbaru yang boleh tampil
 
-  async function tampilkan(e: FormEvent) {
-    e.preventDefault()
+  async function tampilkan(event: FormEvent) {
+    event.preventDefault()
     const nomor = ++permintaanTerakhir.current
     setPesanGalat('')
     setHasil(null) // hasil pencarian sebelumnya dihapus begitu pencarian baru dimulai
@@ -42,20 +42,20 @@ export default function HalamanDaftarPengajuanCuti() {
     }
     setGalat({})
     setSibuk(true)
-    let r
+    let respons
     try {
-      r = await panggil<Hasil & { galat?: GalatPeriode; pesan?: string }>(
+      respons = await panggil<Hasil & { galat?: GalatPeriode; pesan?: string }>(
         `/cuti/pengajuan?mulai=${encodeURIComponent(lokal.periode.mulai)}&akhir=${encodeURIComponent(lokal.periode.akhir)}`,
       )
     } catch {
-      r = null
+      respons = null
     }
     if (nomor !== permintaanTerakhir.current) return
     setSibuk(false)
-    if (r?.status === 200) setHasil(r.data)
+    if (respons?.status === 200) setHasil(respons.data)
     else {
-      setGalat(r?.data.galat ?? {})
-      if (!r?.data.galat) setPesanGalat(r?.data.pesan ?? PESAN_GALAT_UMUM)
+      setGalat(respons?.data.galat ?? {})
+      if (!respons?.data.galat) setPesanGalat(respons?.data.pesan ?? PESAN_GALAT_UMUM)
     }
   }
 
@@ -68,12 +68,12 @@ export default function HalamanDaftarPengajuanCuti() {
         <form onSubmit={tampilkan} noValidate className="flex flex-col gap-4 sm:flex-row sm:items-start">
           <div className="sm:w-kolom-tanggal">
             <Field label="Tanggal mulai" galat={galat.mulai}>
-              {(p) => <Input {...p} type="date" name="mulai" value={mulai} onChange={(e) => setMulai(e.target.value)} />}
+              {(kontrol) => <Input {...kontrol} type="date" name="mulai" value={mulai} onChange={(event) => setMulai(event.target.value)} />}
             </Field>
           </div>
           <div className="sm:w-kolom-tanggal">
             <Field label="Tanggal akhir" galat={galat.akhir}>
-              {(p) => <Input {...p} type="date" name="akhir" value={akhir} onChange={(e) => setAkhir(e.target.value)} />}
+              {(kontrol) => <Input {...kontrol} type="date" name="akhir" value={akhir} onChange={(event) => setAkhir(event.target.value)} />}
             </Field>
           </div>
           <div className="sm:pt-label-field">
@@ -100,14 +100,14 @@ export default function HalamanDaftarPengajuanCuti() {
               </tr>
             </thead>
             <tbody>
-              {hasil.pengajuan.map((p) => (
-                <tr key={p.id}>
-                  <td>{p.namaPegawai}</td>
-                  <td>{formatTanggal(p.tanggalMulai)}</td>
-                  <td>{formatTanggal(p.tanggalAkhir)}</td>
-                  <td className="num">{formatLama(p.lamaCuti)}</td>
+              {hasil.pengajuan.map((pengajuan) => (
+                <tr key={pengajuan.id}>
+                  <td>{pengajuan.namaPegawai}</td>
+                  <td>{formatTanggal(pengajuan.tanggalMulai)}</td>
+                  <td>{formatTanggal(pengajuan.tanggalAkhir)}</td>
+                  <td className="num">{formatLama(pengajuan.lamaCuti)}</td>
                   <td>
-                    <Pill varian={VARIAN_STATUS[p.status]}>{p.status}</Pill>
+                    <Pill varian={VARIAN_STATUS[pengajuan.status]}>{pengajuan.status}</Pill>
                   </td>
                 </tr>
               ))}

@@ -11,12 +11,12 @@ export function PilihPegawai({ nip, onPilih }: { nip: string; onPilih: (nip: str
   return (
     <div className="max-w-form">
       <Field label="Pegawai">
-        {(p) => (
-          <Select {...p} name="pegawai" value={nip} disabled={!daftar} onChange={(e) => onPilih(e.target.value)}>
+        {(kontrol) => (
+          <Select {...kontrol} name="pegawai" value={nip} disabled={!daftar} onChange={(event) => onPilih(event.target.value)}>
             <option value="">{daftar ? 'Pilih pegawai' : 'Memuat…'}</option>
-            {daftar?.map((d) => (
-              <option key={d.nomorIndukPegawai} value={d.nomorIndukPegawai}>
-                {d.nama} ({d.nomorIndukPegawai})
+            {daftar?.map((pegawai) => (
+              <option key={pegawai.nomorIndukPegawai} value={pegawai.nomorIndukPegawai}>
+                {pegawai.nama} ({pegawai.nomorIndukPegawai})
               </option>
             ))}
           </Select>

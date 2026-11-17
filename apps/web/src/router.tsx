@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router'
 import HalamanDaftar from './akses/HalamanDaftar.tsx'
 import HalamanMasuk from './akses/HalamanMasuk.tsx'
-import { Butuh } from './akses/Butuh.tsx'
+import { HanyaUntuk } from './akses/HanyaUntuk.tsx'
 import HalamanDaftarPengajuanCuti from './cuti/HalamanDaftarPengajuanCuti.tsx'
 import HalamanRiwayatCuti from './cuti/HalamanRiwayatCuti.tsx'
 import HalamanSisaCuti from './cuti/HalamanSisaCuti.tsx'
@@ -12,7 +12,7 @@ import HalamanTiketSaya from './tiket/HalamanTiketSaya.tsx'
 import Beranda from './halaman/Beranda.tsx'
 import Placeholder from './halaman/Placeholder.tsx'
 import Layout from './shell/Layout.tsx'
-import { MENU } from './shell/menu.ts'
+import { MENU, peranTerbatas } from './shell/menu.ts'
 
 // Halaman yang sudah dibangun menggantikan Placeholder (kunci = path menu).
 const HALAMAN: Record<string, ReactNode> = {
@@ -34,16 +34,17 @@ export const router = createBrowserRouter([
       {
         path: '/pesan/:idPenerbangan',
         element: (
-          <Butuh peran={['CalonPenumpang']}>
+          <HanyaUntuk peran={['CalonPenumpang']}>
             <HalamanPemesanan />
-          </Butuh>
+          </HanyaUntuk>
         ),
       },
       ...MENU.map((item) => {
         const halaman = HALAMAN[item.path] ?? <Placeholder item={item} />
+        const terbatas = peranTerbatas(item)
         return {
           path: item.path,
-          element: item.peran === 'publik' ? halaman : <Butuh peran={item.peran}>{halaman}</Butuh>,
+          element: terbatas ? <HanyaUntuk peran={terbatas}>{halaman}</HanyaUntuk> : halaman,
         }
       }),
       { path: '*', element: <Navigate to="/" replace /> },

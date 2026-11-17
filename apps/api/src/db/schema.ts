@@ -76,11 +76,11 @@ export const penerbangan = sqliteTable(
       .notNull()
       .references(() => kota.id),
   },
-  (t) => [
-    unique().on(t.nomorPenerbangan, t.tanggalKeberangkatan),
+  (tabel) => [
+    unique().on(tabel.nomorPenerbangan, tabel.tanggalKeberangkatan),
     // inv KotaBerbeda. TidakOverbooking penuh (sisaKursi >= 0) dijaga AlokasiKursi (tabel alokasi_kursi); di sini hanya jumlah kursi tak negatif.
-    check('penerbangan_kota_berbeda', sql`${t.asalId} <> ${t.tujuanId}`),
-    check('penerbangan_jumlah_kursi_tak_negatif', sql`${t.jumlahKursi} >= 0`),
+    check('penerbangan_kota_berbeda', sql`${tabel.asalId} <> ${tabel.tujuanId}`),
+    check('penerbangan_jumlah_kursi_tak_negatif', sql`${tabel.jumlahKursi} >= 0`),
   ],
 )
 
@@ -100,9 +100,9 @@ export const pemesanan = sqliteTable(
       .notNull()
       .references(() => akun.id),
   },
-  (t) => [
-    check('pemesanan_status_sah', sql`${t.status} in ('WaitingForThePayment', 'Booked', 'Confirmed', 'Cancelled')`),
-    index('pemesanan_pemesan').on(t.pemesanId),
+  (tabel) => [
+    check('pemesanan_status_sah', sql`${tabel.status} in ('WaitingForThePayment', 'Booked', 'Confirmed', 'Cancelled')`),
+    index('pemesanan_pemesan').on(tabel.pemesanId),
   ],
 )
 
@@ -124,15 +124,15 @@ export const penumpang = sqliteTable(
     nomorTelepon: text('nomor_telepon').notNull(),
     email: text('email').notNull(),
   },
-  (t) => [
-    index('penumpang_pemesanan').on(t.pemesananId),
-    index('penumpang_akun').on(t.akunId),
+  (tabel) => [
+    index('penumpang_pemesanan').on(tabel.pemesananId),
+    index('penumpang_akun').on(tabel.akunId),
     // Bagian tak bergantung waktu dari inv DataPenumpangLengkap: kelima kolom DataWajib terisi. Format dijaga domain.
-    check('penumpang_nama_terisi', sql`length(trim(${t.namaLengkap})) > 0`),
-    check('penumpang_identitas_terisi', sql`length(trim(${t.nomorIdentitas})) > 0`),
-    check('penumpang_tanggal_lahir_terisi', sql`length(trim(${t.tanggalLahir})) > 0`),
-    check('penumpang_telepon_terisi', sql`length(trim(${t.nomorTelepon})) > 0`),
-    check('penumpang_email_terisi', sql`length(trim(${t.email})) > 0`),
+    check('penumpang_nama_terisi', sql`length(trim(${tabel.namaLengkap})) > 0`),
+    check('penumpang_identitas_terisi', sql`length(trim(${tabel.nomorIdentitas})) > 0`),
+    check('penumpang_tanggal_lahir_terisi', sql`length(trim(${tabel.tanggalLahir})) > 0`),
+    check('penumpang_telepon_terisi', sql`length(trim(${tabel.nomorTelepon})) > 0`),
+    check('penumpang_email_terisi', sql`length(trim(${tabel.email})) > 0`),
   ],
 )
 
@@ -148,9 +148,9 @@ export const alokasiKursi = sqliteTable(
     kodeNormal: text('kode_normal').notNull().unique(),
     jumlah: integer('jumlah').notNull(),
   },
-  (t) => [
-    check('alokasi_kursi_jumlah_positif', sql`${t.jumlah} > 0`),
-    index('alokasi_kursi_penerbangan').on(t.penerbanganId),
+  (tabel) => [
+    check('alokasi_kursi_jumlah_positif', sql`${tabel.jumlah} > 0`),
+    index('alokasi_kursi_penerbangan').on(tabel.penerbanganId),
   ],
 )
 

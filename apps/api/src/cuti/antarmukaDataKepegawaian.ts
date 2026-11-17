@@ -37,7 +37,7 @@ export function antarmukaDataKepegawaian(db: Db) {
     },
 
     async ambilHariLibur(): Promise<TanggalIso[]> {
-      return (await db.select({ tanggal: hariLibur.tanggal }).from(hariLibur)).map((b) => b.tanggal)
+      return (await db.select({ tanggal: hariLibur.tanggal }).from(hariLibur)).map((baris) => baris.tanggal)
     },
 
     /** Semua pengajuan semua status beserta nama pegawai (bahan ambilPengajuanBeririsan di PengendaliCuti). */

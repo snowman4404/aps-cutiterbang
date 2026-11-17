@@ -1,6 +1,6 @@
 // Pengambil data GET netral modul (dipakai cuti dan tiket); tidak boleh mengimpor modul mana pun.
 import { useEffect, useState } from 'react'
-import { panggil } from '../akses/api.ts'
+import { panggil } from '../lib/api.ts'
 
 export const PESAN_GALAT_UMUM = 'Terjadi kesalahan, coba lagi'
 
@@ -21,12 +21,12 @@ export function useMuat<T>(url: string | null, galatCadangan: string = PESAN_GAL
   useEffect(() => {
     if (url === null) return
     let batal = false
-    const selesai = (h: Omit<Hasil<T>, 'url'>) => {
-      if (!batal) setHasil({ url, ...h })
+    const selesai = (hasilBaru: Omit<Hasil<T>, 'url'>) => {
+      if (!batal) setHasil({ url, ...hasilBaru })
     }
     panggil<T & { pesan?: string }>(url)
-      .then((r) =>
-        selesai(r.status === 200 ? { data: r.data, galat: '' } : { data: null, galat: r.data.pesan ?? galatCadangan }),
+      .then((respons) =>
+        selesai(respons.status === 200 ? { data: respons.data, galat: '' } : { data: null, galat: respons.data.pesan ?? galatCadangan }),
       )
       .catch(() => selesai({ data: null, galat: galatCadangan }))
     return () => {

@@ -25,7 +25,7 @@ export default function HalamanSisaCuti() {
       <PageTitle finding="Jatah cuti tahunan dikurangi hari kerja cuti yang disetujui pada tahun berjalan.">
         Sisa Cuti
       </PageTitle>
-      <PilihPegawai nip={nip} onPilih={(n) => setParams(n ? { nip: n } : {})} />
+      <PilihPegawai nip={nip} onPilih={(nipTerpilih) => setParams(nipTerpilih ? { nip: nipTerpilih } : {})} />
       {galat && <Alert varian="negative">{galat}</Alert>}
       {data && (
         <Card className="flex max-w-form flex-col gap-4" aria-label="Sisa cuti">

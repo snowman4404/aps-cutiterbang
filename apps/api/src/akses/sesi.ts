@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto'
+import type { AkunPublik } from '@cutiterbang/domain'
 import { eq } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
@@ -8,10 +9,8 @@ import { akun, sesi, type Akun } from '../db/schema.ts'
 export const NAMA_COOKIE = 'sid'
 const UMUR_SESI_MS = 7 * 24 * 60 * 60 * 1000
 
-export type AkunPublik = Pick<Akun, 'id' | 'nama' | 'email' | 'peran'>
-
-export function keAkunPublik(a: Akun): AkunPublik {
-  return { id: a.id, nama: a.nama, email: a.email, peran: a.peran }
+export function keAkunPublik(baris: Akun): AkunPublik {
+  return { id: baris.id, nama: baris.nama, email: baris.email, peran: baris.peran }
 }
 
 export async function mulaiSesi(c: Context, db: Db, akunId: number) {

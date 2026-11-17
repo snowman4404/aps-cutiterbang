@@ -10,13 +10,14 @@ import {
   PESAN_MULAI_WAJIB,
   PESAN_TIDAK_ADA_AKSES,
   PESAN_TIDAK_ADA_PENGAJUAN,
+  SANDI_DEMO,
 } from '@cutiterbang/domain'
 import { buatApp } from '../app.ts'
 import { buatDb } from '../db/client.ts'
 import { buatDataCuti, NIP } from '../db/dataCuti.ts'
 import { jalankanMigrasi } from '../db/migrate.ts'
 import { pengajuanCuti } from '../db/schema.ts'
-import { seed, SANDI_DEMO } from '../db/seed.ts'
+import { seed } from '../db/seed.ts'
 import { antarmukaDataKepegawaian } from './antarmukaDataKepegawaian.ts'
 import { buatPengendaliCuti } from './pengendaliCuti.ts'
 
@@ -26,11 +27,11 @@ const HARI_INI = '2026-11-17'
 let app: ReturnType<typeof buatApp>
 let cookie = ''
 
-const ambil = (path: string, c: string | undefined = cookie, a = app) =>
-  a.request(`/api/cuti${path}`, { headers: c ? { Cookie: c } : {} })
+const ambil = (path: string, cookieSesi: string | undefined = cookie, appCuti = app) =>
+  appCuti.request(`/api/cuti${path}`, { headers: cookieSesi ? { Cookie: cookieSesi } : {} })
 
-const masuk = async (email: string, a = app) => {
-  const res = await a.request('/api/auth/masuk', {
+const masuk = async (email: string, appCuti = app) => {
+  const res = await appCuti.request('/api/auth/masuk', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, kataSandi: SANDI_DEMO }),
@@ -54,13 +55,13 @@ const RUTE = [
 ]
 
 describe('akses', () => {
-  test.each(RUTE)('tanpa login: 401 (%s)', async (r) => {
-    expect((await ambil(r, '')).status).toBe(401)
+  test.each(RUTE)('tanpa login: 401 (%s)', async (rute) => {
+    expect((await ambil(rute, '')).status).toBe(401)
   })
 
-  test.each(RUTE)('bukan HRDManajer: 403 dan data tersembunyi (%s)', async (r) => {
+  test.each(RUTE)('bukan HRDManajer: 403 dan data tersembunyi (%s)', async (rute) => {
     for (const email of ['penumpang@cutiterbang.test', 'travel@cutiterbang.test']) {
-      const res = await ambil(r, await masuk(email))
+      const res = await ambil(rute, await masuk(email))
       expect(res.status).toBe(403)
       expect(await res.json()).toEqual({ pesan: PESAN_TIDAK_ADA_AKSES })
     }
@@ -182,8 +183,8 @@ describe('riwayat: id unik per baris', () => {
   test('setiap baris punya id numerik yang berbeda', async () => {
     const { riwayat } = await (await ambil(`/pegawai/${NIP.agus}/riwayat`)).json()
     expect(riwayat.length).toBeGreaterThan(1)
-    const id = riwayat.map((r: { id: number }) => r.id)
-    expect(id.every((i: unknown) => typeof i === 'number')).toBe(true)
+    const id = riwayat.map((baris: { id: number }) => baris.id)
+    expect(id.every((nilai: unknown) => typeof nilai === 'number')).toBe(true)
     expect(new Set(id).size).toBe(id.length)
   })
 })
@@ -200,8 +201,8 @@ describe('seed', () => {
     await seed(db, HARI_INI)
     expect(await hitung(db)).toBe(awal)
     expect(awal).toBe(buatDataCuti(2026).pengajuan.length)
-    const a = buatApp(db, { hariIni: HARI_INI })
-    const res = await ambil('/pengajuan?mulai=2026-02-01&akhir=2026-04-30', await masuk('hrd@cutiterbang.test', a), a)
+    const appCuti = buatApp(db, { hariIni: HARI_INI })
+    const res = await ambil('/pengajuan?mulai=2026-02-01&akhir=2026-04-30', await masuk('hrd@cutiterbang.test', appCuti), appCuti)
     expect((await res.json()).pengajuan).toHaveLength(4)
   })
 
@@ -215,33 +216,35 @@ describe('seed', () => {
     await seed(db, tahunBaru)
     expect(await hitung(db)).toBe(buatDataCuti(2027).pengajuan.length)
 
-    const a = buatApp(db, { hariIni: tahunBaru })
-    const c = await masuk('hrd@cutiterbang.test', a)
-    const riwayat = await (await ambil(`/pegawai/${NIP.agus}/riwayat`, c, a)).json()
+    const appCuti = buatApp(db, { hariIni: tahunBaru })
+    const cookieSesi = await masuk('hrd@cutiterbang.test', appCuti)
+    const riwayat = await (await ambil(`/pegawai/${NIP.agus}/riwayat`, cookieSesi, appCuti)).json()
     expect(riwayat.tahun).toBe(2027)
     expect(riwayat.riwayat.length).toBeGreaterThan(0)
-    expect(riwayat.riwayat.every((r: { tanggalMulai: string }) => r.tanggalMulai.startsWith('2027-'))).toBe(true)
-    const sisa = await (await ambil(`/pegawai/${NIP.fitri}/sisa`, c, a)).json()
+    expect(riwayat.riwayat.every((baris: { tanggalMulai: string }) => baris.tanggalMulai.startsWith('2027-'))).toBe(true)
+    const sisa = await (await ambil(`/pegawai/${NIP.fitri}/sisa`, cookieSesi, appCuti)).json()
     expect(sisa).toMatchObject({ tahun: 2027, cutiTerpakai: 15, sisaCuti: -3 })
     // Pegawai dan hari libur tidak digandakan.
-    expect((await (await ambil('/pegawai', c, a)).json()).pegawai).toHaveLength(8)
+    expect((await (await ambil('/pegawai', cookieSesi, appCuti)).json()).pegawai).toHaveLength(8)
   })
 })
 
 describe('hari libur seed menutupi setiap tahun yang disentuh cuti seed', () => {
   test.each([2026, 2027, 2028])('tahun %i', (tahun) => {
     const data = buatDataCuti(tahun)
-    const tahunLibur = new Set(data.hariLibur.map((h) => tahunDari(h.tanggal)))
-    for (const p of data.pengajuan) {
-      for (let t = tahunDari(p.tanggalMulai); t <= tahunDari(p.tanggalAkhir); t++) expect(tahunLibur.has(t)).toBe(true)
+    const tahunLibur = new Set(data.hariLibur.map((baris) => tahunDari(baris.tanggal)))
+    for (const pengajuan of data.pengajuan) {
+      for (let tahunCuti = tahunDari(pengajuan.tanggalMulai); tahunCuti <= tahunDari(pengajuan.tanggalAkhir); tahunCuti++) {
+        expect(tahunLibur.has(tahunCuti)).toBe(true)
+      }
     }
     // Cuti lintas 31 Des: 1 Jan (Tahun Baru) dan 25 Des tidak dihitung hari kerja.
-    const libur = data.hariLibur.map((h) => h.tanggal)
-    for (const p of data.pengajuan) {
-      for (let t = p.tanggalMulai; t <= p.tanggalAkhir; t = tambahHari(t, 1)) {
-        if (t.endsWith('-01-01') || t.endsWith('-12-25')) {
-          expect(libur).toContain(t)
-          expect(jumlahHariKerja(t, t, libur)).toBe(0)
+    const libur = data.hariLibur.map((baris) => baris.tanggal)
+    for (const pengajuan of data.pengajuan) {
+      for (let hari = pengajuan.tanggalMulai; hari <= pengajuan.tanggalAkhir; hari = tambahHari(hari, 1)) {
+        if (hari.endsWith('-01-01') || hari.endsWith('-12-25')) {
+          expect(libur).toContain(hari)
+          expect(jumlahHariKerja(hari, hari, libur)).toBe(0)
         }
       }
     }

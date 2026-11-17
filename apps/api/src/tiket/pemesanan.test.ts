@@ -16,6 +16,7 @@ import {
   PESAN_TANGGAL_LAHIR,
   PESAN_TIDAK_ADA_AKSES,
   PESAN_TIDAK_DAPAT_DIBATALKAN,
+  SANDI_DEMO,
   tambahHari,
   type InformasiPenerbangan,
   type StatusBooking,
@@ -28,7 +29,7 @@ import { DEMO } from '../db/dataPenerbangan.ts'
 import { jalankanMigrasi } from '../db/migrate.ts'
 import { resetData } from '../db/reset.ts'
 import { akun, alokasiKursi, pemesanan, penerbangan, penumpang } from '../db/schema.ts'
-import { seed, SANDI_DEMO } from '../db/seed.ts'
+import { seed } from '../db/seed.ts'
 import { antarmukaKatalogPenerbangan } from './antarmukaKatalogPenerbangan.ts'
 import { adalahKodeBentrok, antarmukaPemesanan } from './antarmukaPemesanan.ts'
 import { buatPengendaliPemesanan, GALAT_KODE_TIDAK_UNIK } from './pengendaliPemesanan.ts'

@@ -29,10 +29,10 @@ export function buatPengendaliCuti(data: AntarmukaDataKepegawaian, hariIni: () =
 
   /** ambilJatahDanCutiDisetujui(nip): pegawai + cuti Disetujui tahun ini. null = NIP tidak dikenal. */
   async function ambilJatahDanCutiDisetujui(nip: string, sekarang: TanggalIso) {
-    const p = await data.cariPegawai(nip)
-    if (!p) return null
-    const [pengajuan, libur] = await Promise.all([data.ambilPengajuanPegawai(p.id), data.ambilHariLibur()])
-    return { pegawai: p, disetujui: cutiDisetujuiTahunIni(pengajuan, sekarang), libur }
+    const dataPegawai = await data.cariPegawai(nip)
+    if (!dataPegawai) return null
+    const [pengajuan, libur] = await Promise.all([data.ambilPengajuanPegawai(dataPegawai.id), data.ambilHariLibur()])
+    return { pegawai: dataPegawai, disetujui: cutiDisetujuiTahunIni(pengajuan, sekarang), libur }
   }
 
   /** tampilkanPengajuan(mulai, akhir): US-1a. */
@@ -40,14 +40,14 @@ export function buatPengendaliCuti(data: AntarmukaDataKepegawaian, hariIni: () =
     const hasil = validasiPeriode({ mulai, akhir })
     if ('galat' in hasil) return { galat: hasil.galat }
     const [beririsan, libur] = await Promise.all([ambilPengajuanBeririsan(hasil.periode), data.ambilHariLibur()])
-    const pengajuan = beririsan.map((p) => ({
-      id: p.id,
-      namaPegawai: p.nama,
-      nomorIndukPegawai: p.nomorIndukPegawai,
-      tanggalMulai: p.tanggalMulai,
-      tanggalAkhir: p.tanggalAkhir,
-      lamaCuti: lamaCuti(p, libur),
-      status: p.status,
+    const pengajuan = beririsan.map((baris) => ({
+      id: baris.id,
+      namaPegawai: baris.nama,
+      nomorIndukPegawai: baris.nomorIndukPegawai,
+      tanggalMulai: baris.tanggalMulai,
+      tanggalAkhir: baris.tanggalAkhir,
+      lamaCuti: lamaCuti(baris, libur),
+      status: baris.status,
     }))
     return { pengajuan, ...(pengajuan.length === 0 ? { pesan: PESAN_TIDAK_ADA_PENGAJUAN } : {}) }
   }
@@ -60,11 +60,11 @@ export function buatPengendaliCuti(data: AntarmukaDataKepegawaian, hariIni: () =
     const sekarang = hariIni()
     const dasar = await ambilJatahDanCutiDisetujui(nip, sekarang)
     if (!dasar) return null
-    const riwayat = riwayatCuti(dasar.disetujui, sekarang).map((c) => ({
-      id: c.id,
-      tanggalMulai: c.tanggalMulai,
-      tanggalAkhir: c.tanggalAkhir,
-      lamaCuti: lamaCuti(c, dasar.libur),
+    const riwayat = riwayatCuti(dasar.disetujui, sekarang).map((cuti) => ({
+      id: cuti.id,
+      tanggalMulai: cuti.tanggalMulai,
+      tanggalAkhir: cuti.tanggalAkhir,
+      lamaCuti: lamaCuti(cuti, dasar.libur),
     }))
     return {
       pegawai: { nama: dasar.pegawai.nama, nomorIndukPegawai: dasar.pegawai.nomorIndukPegawai },
@@ -79,12 +79,12 @@ export function buatPengendaliCuti(data: AntarmukaDataKepegawaian, hariIni: () =
     const sekarang = hariIni()
     const dasar = await ambilJatahDanCutiDisetujui(nip, sekarang)
     if (!dasar) return null
-    const { pegawai: p, disetujui, libur } = dasar
-    const sisa = sisaCuti(p.jatahCutiTahunan, disetujui, sekarang, libur)
+    const { pegawai: dataPegawai, disetujui, libur } = dasar
+    const sisa = sisaCuti(dataPegawai.jatahCutiTahunan, disetujui, sekarang, libur)
     return {
-      pegawai: { nama: p.nama, nomorIndukPegawai: p.nomorIndukPegawai },
+      pegawai: { nama: dataPegawai.nama, nomorIndukPegawai: dataPegawai.nomorIndukPegawai },
       tahun: tahunDari(sekarang),
-      jatahCutiTahunan: p.jatahCutiTahunan,
+      jatahCutiTahunan: dataPegawai.jatahCutiTahunan,
       cutiTerpakai: cutiTerpakai(disetujui, sekarang, libur),
       sisaCuti: sisa,
       melebihiJatah: sisa < 0,

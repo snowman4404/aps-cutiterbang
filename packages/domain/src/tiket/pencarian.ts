@@ -79,6 +79,6 @@ export const cocok = (
 /** urutkanMenurutWaktuBerangkat: instan keberangkatan paling awal dulu (tidak mengubah masukan). */
 export const urutkanMenurutWaktuBerangkat = <T extends Penerbangan>(daftar: readonly T[]): T[] =>
   [...daftar].sort(
-    (a, b) =>
-      waktuBerangkatAbsolut(a) - waktuBerangkatAbsolut(b) || a.nomorPenerbangan.localeCompare(b.nomorPenerbangan),
+    (pertama, kedua) =>
+      waktuBerangkatAbsolut(pertama) - waktuBerangkatAbsolut(kedua) || pertama.nomorPenerbangan.localeCompare(kedua.nomorPenerbangan),
   )

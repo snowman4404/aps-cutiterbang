@@ -23,10 +23,10 @@ export function Dialog({
   const idJudul = useId()
 
   useEffect(() => {
-    const d = ref.current
-    if (!d) return
-    if (buka && !d.open) d.showModal()
-    if (!buka && d.open) d.close()
+    const dialog = ref.current
+    if (!dialog) return
+    if (buka && !dialog.open) dialog.showModal()
+    if (!buka && dialog.open) dialog.close()
   }, [buka])
 
   return (

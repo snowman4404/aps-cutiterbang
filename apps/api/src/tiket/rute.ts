@@ -11,11 +11,11 @@ export function rutePenerbangan(db: Db, hariIni: () => TanggalIso, sekarang: () 
   const katalog = antarmukaKatalogPenerbangan(db)
   const pengendali = buatPengendaliPencarian(katalog, hariIni, sekarang)
   const pemesanan = buatPengendaliPemesanan(katalog, antarmukaPemesanan(db), hariIni, sekarang)
-  const r = new Hono()
+  const rute = new Hono()
 
-  r.get('/kota', async (c) => c.json(await pengendali.muatDaftarKota()))
+  rute.get('/kota', async (c) => c.json(await pengendali.muatDaftarKota()))
 
-  r.get('/cari', async (c) => {
+  rute.get('/cari', async (c) => {
     const hasil = await pengendali.cariPenerbangan({
       asal: c.req.query('asal'),
       tujuan: c.req.query('tujuan'),
@@ -25,10 +25,10 @@ export function rutePenerbangan(db: Db, hariIni: () => TanggalIso, sekarang: () 
   })
 
   // US-2a langkah 5: informasi satu penerbangan (ringkasan) termasuk sisaKursi dan tersedia.
-  r.get('/:id{[0-9]+}', async (c) => {
+  rute.get('/:id{[0-9]+}', async (c) => {
     const hasil = await pemesanan.siapkanRingkasan(Number(c.req.param('id')))
     return hasil ? c.json(hasil) : c.json({ pesan: PESAN_PENERBANGAN_TIDAK_DITEMUKAN }, 404)
   })
 
-  return r
+  return rute
 }

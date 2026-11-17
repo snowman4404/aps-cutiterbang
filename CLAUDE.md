@@ -50,8 +50,8 @@ npm workspaces monorepo. Scripts live in the root and each workspace's `package.
 - `apps/web`: React 19 + Vite + TypeScript + React Router + Tailwind v4. Proxies `/api` to the API on port 8787.
 - `apps/api`: Hono on Node, SQLite through `@libsql/client` + Drizzle ORM. DB file is `apps/api/data/cutiterbang.db` (gitignored); `npm run db:reset` rebuilds it from migrations and seed.
 - `packages/domain`: pure TypeScript domain logic (invariants, derived attributes like `/lamaCuti` and `/sisaKursi`, state transitions) imported by both apps. No I/O here, so it is unit-tested with Vitest.
-- Demo data: seeded accounts use `*@cutiterbang.test` with password `rahasia123`; `POST /api/dev/reset` wipes rows and reseeds in-process (e2e `beforeEach` calls it).
-- Tests: Vitest (`npm test`) for domain logic; Playwright (`npm run test:e2e`) starts both servers itself. E2E tests run serially because they share one DB.
+- Demo data: seeded accounts (list and password in `packages/domain/src/akses/demo.ts`) use `*@cutiterbang.test` with password `rahasia123`; `POST /api/dev/reset` wipes every table and reseeds in-process (e2e `beforeEach` calls it); it returns 404 when `NODE_ENV=production` unless `IZINKAN_RESET=1`.
+- Tests: Vitest (`npm test`) for domain logic; Playwright (`npm run test:e2e`) starts both servers itself. E2E tests run serially because they share one DB. `npm run test:visual` takes the style-review screenshots (separate Playwright project; `test:e2e` skips it).
 
 ## Conventions
 

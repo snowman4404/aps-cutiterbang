@@ -20,11 +20,11 @@ export function rutePemesanan(db: Db, hariIni: () => TanggalIso, sekarang: () =>
   const pemesanan = buatPengendaliPemesanan(katalog, data, hariIni, sekarang)
   const pembatalan = buatPengendaliPembatalan(katalog, data, sekarang)
 
-  const r = new Hono<Variabel>()
-  r.use('*', butuhLogin, butuhPeran('CalonPenumpang'))
+  const rute = new Hono<Variabel>()
+  rute.use('*', butuhLogin, butuhPeran('CalonPenumpang'))
 
   // US-2a: konfirmasi pemesanan (kontrak C1).
-  r.post('/', async (c) => {
+  rute.post('/', async (c) => {
     const badan = (await c.req.json().catch(() => null)) as { idPenerbangan?: unknown; dataPenumpang?: unknown } | null
     const id = Number(badan?.idPenerbangan)
     if (!Number.isInteger(id)) return c.json({ pesan: PESAN_PENERBANGAN_TIDAK_DITEMUKAN }, 404)
@@ -43,10 +43,10 @@ export function rutePemesanan(db: Db, hariIni: () => TanggalIso, sekarang: () =>
   })
 
   // Tiket Saya (US-2b langkah 1 dan 2a).
-  r.get('/saya', async (c) => c.json(await pembatalan.tentukanPemesananDapatDibatalkan(c.get('akun'))))
+  rute.get('/saya', async (c) => c.json(await pembatalan.tentukanPemesananDapatDibatalkan(c.get('akun'))))
 
   // US-2b: pembatalan setelah pemesan mengonfirmasi di dialog (kontrak C3).
-  r.post('/:kode/batalkan', async (c) => {
+  rute.post('/:kode/batalkan', async (c) => {
     const hasil = await pembatalan.batalkan(c.get('akun'), c.req.param('kode'))
     switch (hasil.hasil) {
       case 'berhasil':
@@ -58,5 +58,5 @@ export function rutePemesanan(db: Db, hariIni: () => TanggalIso, sekarang: () =>
     }
   })
 
-  return r
+  return rute
 }

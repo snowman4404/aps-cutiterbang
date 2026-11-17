@@ -15,8 +15,8 @@ export default function HalamanCariPenerbangan() {
   // Pesan hanya untuk yang belum login atau berperan CalonPenumpang (Member juga); peran lain tidak memesan tiket.
   const bolehPesan = !memuat && (akun === null || punyaPeran(akun.peran, ['CalonPenumpang']))
 
-  function kirim(e: FormEvent) {
-    e.preventDefault()
+  function kirimPencarian(event: FormEvent) {
+    event.preventDefault()
     cari()
   }
 
@@ -26,7 +26,7 @@ export default function HalamanCariPenerbangan() {
         Cari Penerbangan
       </PageTitle>
       <Card>
-        <form onSubmit={kirim} noValidate className="grid grid-cols-1 gap-4 sm:grid-cols-2 desk:grid-cols-cari desk:items-start">
+        <form onSubmit={kirimPencarian} noValidate className="grid grid-cols-1 gap-4 sm:grid-cols-2 desk:grid-cols-cari desk:items-start">
           <PilihKota
             label="Kota asal"
             name="asal"
@@ -46,8 +46,8 @@ export default function HalamanCariPenerbangan() {
             onPilih={(id) => ubahIsian('tujuan', id)}
           />
           <Field label="Tanggal keberangkatan" galat={galat.tanggal}>
-            {(p) => (
-              <Input {...p} type="date" name="tanggal" value={isian.tanggal} onChange={(e) => ubahIsian('tanggal', e.target.value)} />
+            {(kontrol) => (
+              <Input {...kontrol} type="date" name="tanggal" value={isian.tanggal} onChange={(event) => ubahIsian('tanggal', event.target.value)} />
             )}
           </Field>
           <div className="sm:col-span-2 desk:col-span-1 desk:pt-label-field">
@@ -65,34 +65,34 @@ export default function HalamanCariPenerbangan() {
           <EmptyState>{PESAN_PENERBANGAN_TIDAK_DITEMUKAN}</EmptyState>
         ) : (
           <ul aria-label="Hasil pencarian penerbangan" className="flex flex-col gap-3">
-            {hasil.map((f) => (
-              <li key={f.id} data-testid="penerbangan">
+            {hasil.map((penerbangan) => (
+              <li key={penerbangan.id} data-testid="penerbangan">
                 <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex flex-col gap-1">
-                    <span className="font-medium text-ink">{f.maskapai}</span>
-                    <span className="text-sm text-muted num">{f.nomorPenerbangan}</span>
-                    <span className="text-sm text-muted">{formatTanggalDenganHari(f.tanggalKeberangkatan)}</span>
+                    <span className="font-medium text-ink">{penerbangan.maskapai}</span>
+                    <span className="text-sm text-muted num">{penerbangan.nomorPenerbangan}</span>
+                    <span className="text-sm text-muted">{formatTanggalDenganHari(penerbangan.tanggalKeberangkatan)}</span>
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-sm text-muted">
-                      {f.asal.nama} → {f.tujuan.nama}
+                      {penerbangan.asal.nama} → {penerbangan.tujuan.nama}
                     </span>
                     <span className="text-ink num">
-                      <span data-testid="berangkat">{formatWaktu(f.waktuBerangkat, f.asal.zonaWaktu)}</span>
+                      <span data-testid="berangkat">{formatWaktu(penerbangan.waktuBerangkat, penerbangan.asal.zonaWaktu)}</span>
                       {' → '}
-                      <span data-testid="tiba">{formatWaktu(f.waktuTiba, f.tujuan.zonaWaktu)}</span>
+                      <span data-testid="tiba">{formatWaktu(penerbangan.waktuTiba, penerbangan.tujuan.zonaWaktu)}</span>
                     </span>
                   </div>
                   <div className="flex flex-col gap-1 sm:items-end">
                     <span className="font-medium text-ink num" data-testid="harga">
-                      {formatHarga(f.harga)}
+                      {formatHarga(penerbangan.harga)}
                     </span>
                     <span className="text-sm text-muted num" data-testid="sisa-kursi">
-                      Sisa {f.sisaKursi} kursi
+                      Sisa {penerbangan.sisaKursi} kursi
                     </span>
                   </div>
                   {bolehPesan && (
-                    <LinkTombol to={`/pesan/${f.id}`} varian="primary" ukuran="sm" aria-label={`Pesan ${f.nomorPenerbangan}`}>
+                    <LinkTombol to={`/pesan/${penerbangan.id}`} varian="primary" ukuran="sm" aria-label={`Pesan ${penerbangan.nomorPenerbangan}`}>
                       Pesan
                     </LinkTombol>
                   )}

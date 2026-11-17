@@ -49,6 +49,7 @@ Phases run in order: each one builds on the data and screens of the one before. 
 - [x] US-2b Membatalkan pemesanan (contract C3)
 
 ## Phase 5: Member Frequent Traveller
+- [ ] `Profil` (DataWajib, `/statusProfil`) for Member and Pengunjung; Daftar as Member creates an empty Profil; seed profiles for demo Members and Pengunjung
 - [ ] US-5a Memperbarui data profil (`Profil`, `/statusProfil`)
 - [ ] US-5b Memvalidasi tiket (`catatPerjalanan`); G8: C3 unlinks a cancelled booking from `perjalananTercatat`
 - [ ] US-4 Mencari penerbangan multi-destinasi
@@ -58,6 +59,7 @@ Phases run in order: each one builds on the data and screens of the one before. 
 
 ## Phase 6: Manajer Travel and Pengunjung
 **Decision:** G7 (block picking the same pengunjung twice in one booking?)
+Note: US-8b (contract C2) and US-8d read the Pengunjung's `Profil`, which Phase 5 creates.
 - [ ] US-8a Mencari penerbangan untuk pengunjung
 - [ ] US-8b Memesan tiket atas nama pengunjung (contract C2)
 - [ ] US-8c Melihat tiket yang dipesankan

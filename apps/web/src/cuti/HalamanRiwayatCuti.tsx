@@ -22,7 +22,7 @@ export default function HalamanRiwayatCuti() {
   return (
     <section className="flex flex-col gap-6">
       <PageTitle finding="Cuti yang disetujui dan mulai pada tahun berjalan, terbaru di atas.">Riwayat Cuti</PageTitle>
-      <PilihPegawai nip={nip} onPilih={(n) => setParams(n ? { nip: n } : {})} />
+      <PilihPegawai nip={nip} onPilih={(nipTerpilih) => setParams(nipTerpilih ? { nip: nipTerpilih } : {})} />
       {galat && <Alert varian="negative">{galat}</Alert>}
       {data &&
         (data.riwayat.length === 0 ? (
@@ -41,11 +41,11 @@ export default function HalamanRiwayatCuti() {
                 </tr>
               </thead>
               <tbody>
-                {data.riwayat.map((c) => (
-                  <tr key={c.id}>
-                    <td>{formatTanggal(c.tanggalMulai)}</td>
-                    <td>{formatTanggal(c.tanggalAkhir)}</td>
-                    <td className="num">{formatLama(c.lamaCuti)}</td>
+                {data.riwayat.map((cuti) => (
+                  <tr key={cuti.id}>
+                    <td>{formatTanggal(cuti.tanggalMulai)}</td>
+                    <td>{formatTanggal(cuti.tanggalAkhir)}</td>
+                    <td className="num">{formatLama(cuti.lamaCuti)}</td>
                   </tr>
                 ))}
               </tbody>

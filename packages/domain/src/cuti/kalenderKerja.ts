@@ -8,14 +8,14 @@ const keSet = (libur: DaftarHariLibur): ReadonlySet<TanggalIso> =>
   libur instanceof Set ? libur : new Set(libur)
 
 export function isHariKerja(tanggal: TanggalIso, libur: DaftarHariLibur): boolean {
-  const h = hariDalamMinggu(tanggal)
-  return h !== 0 && h !== 6 && !keSet(libur).has(tanggal)
+  const hari = hariDalamMinggu(tanggal)
+  return hari !== 0 && hari !== 6 && !keSet(libur).has(tanggal)
 }
 
 /** Jumlah hari kerja dari `awal` sampai `akhir`, kedua ujung ikut dihitung. 0 bila akhir < awal. */
 export function jumlahHariKerja(awal: TanggalIso, akhir: TanggalIso, libur: DaftarHariLibur): number {
   const set = keSet(libur)
-  let n = 0
-  for (let t = awal; t <= akhir; t = tambahHari(t, 1)) if (isHariKerja(t, set)) n++
-  return n
+  let jumlah = 0
+  for (let tanggal = awal; tanggal <= akhir; tanggal = tambahHari(tanggal, 1)) if (isHariKerja(tanggal, set)) jumlah++
+  return jumlah
 }

@@ -8,9 +8,9 @@ import {
   type IsianPencarian,
   type Kota,
 } from '@cutiterbang/domain'
-import { panggil } from '../akses/api.ts'
+import { panggil } from '../lib/api.ts'
 
-const adaGalat = (g: GalatPencarian) => Object.keys(g).length > 0
+const adaGalat = (galat: GalatPencarian) => Object.keys(galat).length > 0
 
 // US-3 di sisi web: pencarian yang berlaku diambil langsung dari URL (`?asal=<kotaId>&tujuan=<kotaId>&tanggal=YYYY-MM-DD`),
 // jadi bertahan saat dimuat ulang dan bisa ditautkan. Mengirim formulir hanya menulis URL; efek di bawah
@@ -42,7 +42,7 @@ export function useCariPenerbangan() {
   /** tampilkanPesan(pesan): pesan kesalahan umum (bukan milik satu kolom). */
   const tampilkanPesan = (teks: string) => setPesan(teks)
   /** tandaiKolomSalah(galat): kolom yang salah ditandai dengan pesannya; hasil disembunyikan (isian tetap). */
-  const tandaiKolomSalah = (g: GalatPencarian) => setGalat(g)
+  const tandaiKolomSalah = (galatBaru: GalatPencarian) => setGalat(galatBaru)
   /** tampilkanHasil(daftarCocok): daftar kosong = "Penerbangan tidak ditemukan". */
   const tampilkanHasil = (daftarCocok: HasilPencarian[]) => {
     setGalat({})
@@ -52,10 +52,10 @@ export function useCariPenerbangan() {
   // Langkah 1: daftar kota yang dilayani.
   useEffect(() => {
     let batal = false
-    void panggil<{ kota: Kota[]; pesan?: string }>('/penerbangan/kota').then((r) => {
+    void panggil<{ kota: Kota[]; pesan?: string }>('/penerbangan/kota').then((respons) => {
       if (batal) return
-      if (r.status === 200) setKota(r.data.kota)
-      else setPesanKota(r.data.pesan ?? 'Gagal memuat daftar kota')
+      if (respons.status === 200) setKota(respons.data.kota)
+      else setPesanKota(respons.data.pesan ?? 'Gagal memuat daftar kota')
     })
     return () => {
       batal = true
@@ -75,15 +75,15 @@ export function useCariPenerbangan() {
     if (adaGalat(lokal)) return
     let batal = false
     setSibuk(true)
-    const q = new URLSearchParams({ asal: asalUrl, tujuan: tujuanUrl, tanggal: tanggalUrl })
+    const kueri = new URLSearchParams({ asal: asalUrl, tujuan: tujuanUrl, tanggal: tanggalUrl })
     void panggil<{ penerbangan?: HasilPencarian[]; galat?: GalatPencarian; pesan?: string }>(
-      `/penerbangan/cari?${q}`,
-    ).then((r) => {
+      `/penerbangan/cari?${kueri}`,
+    ).then((respons) => {
       if (batal) return
       setSibuk(false)
-      if (r.status === 200) tampilkanHasil(r.data.penerbangan ?? [])
-      else if (r.data.galat) tandaiKolomSalah(r.data.galat)
-      else tampilkanPesan(r.data.pesan ?? 'Terjadi kesalahan, coba lagi')
+      if (respons.status === 200) tampilkanHasil(respons.data.penerbangan ?? [])
+      else if (respons.data.galat) tandaiKolomSalah(respons.data.galat)
+      else tampilkanPesan(respons.data.pesan ?? 'Terjadi kesalahan, coba lagi')
     })
     return () => {
       batal = true
@@ -91,7 +91,7 @@ export function useCariPenerbangan() {
     }
   }, [asalUrl, tujuanUrl, tanggalUrl, ulang])
 
-  const ubahIsian = (kolom: keyof IsianPencarian, nilai: string) => setIsian((i) => ({ ...i, [kolom]: nilai }))
+  const ubahIsian = (kolom: keyof IsianPencarian, nilai: string) => setIsian((isianLama) => ({ ...isianLama, [kolom]: nilai }))
 
   /** Kirim formulir: validasi lokal (3a-3c) menolak dan menandai kolom; bila valid, tulis ke URL. */
   function cari() {
@@ -99,7 +99,7 @@ export function useCariPenerbangan() {
     tandaiKolomSalah(lokal)
     if (adaGalat(lokal)) return
     const samaDenganUrl = isian.asal === asalUrl && isian.tujuan === tujuanUrl && isian.tanggal === tanggalUrl
-    if (samaDenganUrl) setUlang((n) => n + 1)
+    if (samaDenganUrl) setUlang((jumlahUlang) => jumlahUlang + 1)
     else setParams({ ...isian })
   }
 

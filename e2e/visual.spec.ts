@@ -1,11 +1,9 @@
-// Tangkapan layar untuk tinjauan gaya. Dilewati kecuali VISUAL=1:
-//   VISUAL=1 npx playwright test e2e/visual.spec.ts
+// Tangkapan layar untuk tinjauan gaya: `npm run test:visual` (proyek Playwright "visual";
+// proyek bawaan `chromium` mengabaikan berkas ini).
 // Hasil: .taste-skill/app-shots/*.png (diabaikan git).
 import { mkdirSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
-
-test.skip(!process.env.VISUAL, 'tangkapan layar hanya jika VISUAL=1')
 
 const FOLDER = '.taste-skill/app-shots'
 const SANDI = 'rahasia123'
@@ -35,7 +33,7 @@ test.beforeEach(async ({ request }) => {
 
 for (const u of UKURAN) {
   for (const skema of SKEMA) {
-    test(`tangkapan ${u.nama} ${skema} @visual`, async ({ browser }) => {
+    test(`tangkapan ${u.nama} ${skema}`, async ({ browser }) => {
       const ctx = await browser.newContext({ viewport: { width: u.lebar, height: u.tinggi }, colorScheme: skema })
       const page = await ctx.newPage()
       const simpan = async (nama: string) => {

@@ -1,33 +1,21 @@
 // Seed data stands in for out-of-scope systems (Data Kepegawaian, flights, cities, airlines)
 // and demo accounts for each role. Must be idempotent: skips accounts whose email exists.
-import { fileURLToPath } from 'node:url'
 import { and, eq, sql } from 'drizzle-orm'
-import { hariIniWib, normalKode, STATUS_DIBATALKAN, tahunDari, type Peran } from '@cutiterbang/domain'
+import { AKUN_DEMO, hariIniWib, normalKode, SANDI_DEMO, STATUS_DIBATALKAN, tahunDari } from '@cutiterbang/domain'
 import { hashSandi } from '../akses/sandi.ts'
 import { buatDb, type Db } from './client.ts'
+import { dijalankanLangsung } from './cli.ts'
 import { buatDataCuti } from './dataCuti.ts'
 import { buatDataPemesanan } from './dataPemesanan.ts'
 import { buatDataPenerbangan } from './dataPenerbangan.ts'
 import { akun, alokasiKursi, hariLibur, kota, maskapai, pegawai, pemesanan, pengajuanCuti, penerbangan, penumpang } from './schema.ts'
-
-export const SANDI_DEMO = 'rahasia123'
-
-export const AKUN_DEMO: { nama: string; email: string; peran: Peran }[] = [
-  { nama: 'Rina Wulandari', email: 'hrd@cutiterbang.test', peran: 'HRDManajer' },
-  { nama: 'Budi Santoso', email: 'penumpang@cutiterbang.test', peran: 'CalonPenumpang' },
-  { nama: 'Sari Dewi', email: 'member1@cutiterbang.test', peran: 'MemberFrequentTraveller' },
-  { nama: 'Andi Pratama', email: 'member2@cutiterbang.test', peran: 'MemberFrequentTraveller' },
-  { nama: 'Dimas Saputra', email: 'travel@cutiterbang.test', peran: 'ManajerTravel' },
-  { nama: 'Maya Lestari', email: 'pengunjung1@cutiterbang.test', peran: 'Pengunjung' },
-  { nama: 'Rizky Hidayat', email: 'pengunjung2@cutiterbang.test', peran: 'Pengunjung' },
-]
 
 // `hariIni` bisa disuntik (tes); tanggal data cuti dihitung dari tahunnya, tanggal penerbangan dari hari ini.
 export async function seed(db: Db, hariIni = hariIniWib()) {
   const kataSandiHash = await hashSandi(SANDI_DEMO)
   await db
     .insert(akun)
-    .values(AKUN_DEMO.map((a) => ({ ...a, kataSandiHash, dibuatPada: new Date() })))
+    .values(AKUN_DEMO.map((akunDemo) => ({ ...akunDemo, kataSandiHash, dibuatPada: new Date() })))
     .onConflictDoNothing({ target: akun.email })
   await seedCuti(db, tahunDari(hariIni))
   await seedPenerbangan(db, hariIni)
@@ -41,15 +29,15 @@ async function seedCuti(db: Db, tahun: number) {
   const data = buatDataCuti(tahun)
   await db.insert(hariLibur).values(data.hariLibur).onConflictDoNothing({ target: hariLibur.tanggal })
   await db.insert(pegawai).values(data.pegawai).onConflictDoNothing({ target: pegawai.nomorIndukPegawai })
-  const idPerNip = new Map((await db.select().from(pegawai)).map((b) => [b.nomorIndukPegawai, b.id]))
+  const idPerNip = new Map((await db.select().from(pegawai)).map((pegawaiBaris) => [pegawaiBaris.nomorIndukPegawai, pegawaiBaris.id]))
   const baris = data.pengajuan.map(({ nomorIndukPegawai, ...sisa }) => ({
     ...sisa,
     pegawaiId: idPerNip.get(nomorIndukPegawai)!,
   }))
-  const kunci = (b: { pegawaiId: number; tanggalMulai: string; tanggalAkhir: string; status: string }) =>
-    `${b.pegawaiId}|${b.tanggalMulai}|${b.tanggalAkhir}|${b.status}`
+  const kunci = (cuti: { pegawaiId: number; tanggalMulai: string; tanggalAkhir: string; status: string }) =>
+    `${cuti.pegawaiId}|${cuti.tanggalMulai}|${cuti.tanggalAkhir}|${cuti.status}`
   const ada = new Set((await db.select().from(pengajuanCuti)).map(kunci))
-  if (ada.size === baris.length && baris.every((b) => ada.has(kunci(b)))) return
+  if (ada.size === baris.length && baris.every((cuti) => ada.has(kunci(cuti)))) return
   await db.batch([db.delete(pengajuanCuti), db.insert(pengajuanCuti).values(baris)])
 }
 
@@ -59,19 +47,19 @@ async function seedPenerbangan(db: Db, hariIni: string) {
   const data = buatDataPenerbangan(hariIni)
   await db.insert(kota).values(data.kota).onConflictDoNothing({ target: kota.nama })
   await db.insert(maskapai).values(data.maskapai).onConflictDoNothing({ target: maskapai.nama })
-  const idKota = new Map((await db.select().from(kota)).map((k) => [k.nama, k.id]))
-  const idMaskapai = new Map((await db.select().from(maskapai)).map((m) => [m.nama, m.id]))
-  const baris = data.penerbangan.map(({ maskapai: m, asal, tujuan, ...sisa }) => ({
+  const idKota = new Map((await db.select().from(kota)).map((kotaBaris) => [kotaBaris.nama, kotaBaris.id]))
+  const idMaskapai = new Map((await db.select().from(maskapai)).map((maskapaiBaris) => [maskapaiBaris.nama, maskapaiBaris.id]))
+  const baris = data.penerbangan.map(({ maskapai: namaMaskapai, asal, tujuan, ...sisa }) => ({
     ...sisa,
-    maskapaiId: idMaskapai.get(m)!,
+    maskapaiId: idMaskapai.get(namaMaskapai)!,
     asalId: idKota.get(asal)!,
     tujuanId: idKota.get(tujuan)!,
   }))
   // Dipecah supaya tidak melewati batas jumlah variabel SQLite per pernyataan.
-  for (let i = 0; i < baris.length; i += 200) {
+  for (let awal = 0; awal < baris.length; awal += 200) {
     await db
       .insert(penerbangan)
-      .values(baris.slice(i, i + 200))
+      .values(baris.slice(awal, awal + 200))
       .onConflictDoNothing({ target: [penerbangan.nomorPenerbangan, penerbangan.tanggalKeberangkatan] })
   }
 }
@@ -80,38 +68,38 @@ async function seedPenerbangan(db: Db, hariIni: string) {
 // sudah dibatalkan pengguna) tidak ditimpa. Tiap pemesanan masuk lewat satu batch bersama Penumpang dan, bila
 // belum Cancelled, AlokasiKursi-nya (sisaKursi berkurang). Tidak ada yang Confirmed (ETiket baru di Fase 6).
 async function seedPemesanan(db: Db, hariIni: string) {
-  const sudahAda = new Set((await db.select({ k: pemesanan.kodeNormal }).from(pemesanan)).map((r) => r.k))
-  const idAkun = new Map((await db.select({ id: akun.id, email: akun.email }).from(akun)).map((a) => [a.email, a.id]))
-  for (const p of buatDataPemesanan(hariIni)) {
-    const kodeNormal = normalKode(p.kode)
+  const sudahAda = new Set((await db.select({ kodeNormal: pemesanan.kodeNormal }).from(pemesanan)).map((baris) => baris.kodeNormal))
+  const idAkun = new Map((await db.select({ id: akun.id, email: akun.email }).from(akun)).map((akunBaris) => [akunBaris.email, akunBaris.id]))
+  for (const data of buatDataPemesanan(hariIni)) {
+    const kodeNormal = normalKode(data.kode)
     if (sudahAda.has(kodeNormal)) continue
-    const [f] = await db
+    const [terbang] = await db
       .select({ id: penerbangan.id })
       .from(penerbangan)
-      .where(and(eq(penerbangan.nomorPenerbangan, p.nomorPenerbangan), eq(penerbangan.tanggalKeberangkatan, p.tanggalKeberangkatan)))
-    const pemesanId = idAkun.get(p.akunEmail)
-    if (!f || pemesanId === undefined) continue
+      .where(and(eq(penerbangan.nomorPenerbangan, data.nomorPenerbangan), eq(penerbangan.tanggalKeberangkatan, data.tanggalKeberangkatan)))
+    const pemesanId = idAkun.get(data.akunEmail)
+    if (!terbang || pemesanId === undefined) continue
     await db.batch([
       db.insert(pemesanan).values({
-        kode: p.kode,
+        kode: data.kode,
         kodeNormal,
-        status: p.status,
-        waktuDibuat: new Date(p.waktuDibuat),
-        penerbanganId: f.id,
+        status: data.status,
+        waktuDibuat: new Date(data.waktuDibuat),
+        penerbanganId: terbang.id,
         pemesanId,
       }),
       db.insert(penumpang).values({
         pemesananId: sql`(select id from pemesanan where kode_normal = ${kodeNormal})`,
         akunId: pemesanId,
-        ...p.penumpang,
+        ...data.penumpang,
       }),
-      ...(p.status === STATUS_DIBATALKAN ? [] : [db.insert(alokasiKursi).values({ penerbanganId: f.id, kodeNormal, jumlah: 1 })]),
+      ...(data.status === STATUS_DIBATALKAN ? [] : [db.insert(alokasiKursi).values({ penerbanganId: terbang.id, kodeNormal, jumlah: 1 })]),
     ])
   }
 }
 
 // CLI: `npm run db:seed`
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (dijalankanLangsung(import.meta.url)) {
   await seed(buatDb())
   console.log('Seed: akun demo dibuat')
 }

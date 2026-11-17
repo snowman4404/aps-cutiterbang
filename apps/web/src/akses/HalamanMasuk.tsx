@@ -1,18 +1,9 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
-import { Alert, Button, Card, Field, Input, PageTitle } from '../ui/index.ts'
+import { AKUN_DEMO, LABEL_PERAN, SANDI_DEMO } from '@cutiterbang/domain'
+import { Alert, Button, Card, Field, Input, JudulBagian, Kode, PageTitle } from '../ui/index.ts'
 import { useAuth } from './AuthContext.tsx'
-
-const AKUN_DEMO = [
-  ['hrd@cutiterbang.test', 'HRD Manajer'],
-  ['penumpang@cutiterbang.test', 'Calon Penumpang'],
-  ['member1@cutiterbang.test', 'Member Frequent Traveller'],
-  ['member2@cutiterbang.test', 'Member Frequent Traveller'],
-  ['travel@cutiterbang.test', 'Manajer Travel'],
-  ['pengunjung1@cutiterbang.test', 'Pengunjung'],
-  ['pengunjung2@cutiterbang.test', 'Pengunjung'],
-]
 
 // Hanya jalur di dalam aplikasi yang boleh jadi tujuan setelah masuk.
 function tujuanAman(next: string | null): string {
@@ -28,8 +19,8 @@ export default function HalamanMasuk() {
   const [pesan, setPesan] = useState('')
   const [sibuk, setSibuk] = useState(false)
 
-  async function kirim(e: FormEvent) {
-    e.preventDefault()
+  async function kirimFormulirMasuk(event: FormEvent) {
+    event.preventDefault()
     setSibuk(true)
     setPesan('')
     const hasil = await masuk(email, kataSandi)
@@ -42,29 +33,29 @@ export default function HalamanMasuk() {
     <div className="flex max-w-[420px] flex-col gap-6">
       <PageTitle finding="Masuk untuk memakai manajemen cuti atau pemesanan tiket.">Masuk</PageTitle>
       <Card>
-        <form onSubmit={kirim} className="flex flex-col gap-4">
+        <form onSubmit={kirimFormulirMasuk} className="flex flex-col gap-4">
           <Field label="Email">
-            {(p) => (
+            {(kontrol) => (
               <Input
-                {...p}
+                {...kontrol}
                 type="email"
                 name="email"
                 autoComplete="username"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(event) => setEmail(event.target.value)}
                 required
               />
             )}
           </Field>
           <Field label="Kata sandi">
-            {(p) => (
+            {(kontrol) => (
               <Input
-                {...p}
+                {...kontrol}
                 type="password"
                 name="kataSandi"
                 autoComplete="current-password"
                 value={kataSandi}
-                onChange={(e) => setKataSandi(e.target.value)}
+                onChange={(event) => setKataSandi(event.target.value)}
                 required
               />
             )}
@@ -83,24 +74,26 @@ export default function HalamanMasuk() {
       </Card>
 
       <Card varian="raised" data-testid="akun-demo">
-        <h2 className="text-base font-semibold tracking-[-0.01em]">Akun demo</h2>
+        <JudulBagian>Akun demo</JudulBagian>
         <p className="mt-1 text-muted">
-          Kata sandi semua akun: <code className="font-mono text-sm font-medium text-ink">rahasia123</code>
+          Kata sandi semua akun: <Kode>{SANDI_DEMO}</Kode>
         </p>
         <ul className="mt-3 flex flex-col gap-2">
-          {AKUN_DEMO.map(([e, peran]) => (
-            <li key={e} className="flex flex-col gap-0 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-              <span className="text-muted">{peran}</span>
-              <button
-                type="button"
-                className="text-left text-link hover:underline"
+          {AKUN_DEMO.map((akunDemo) => (
+            <li
+              key={akunDemo.email}
+              className="flex flex-col gap-0 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
+            >
+              <span className="text-muted">{LABEL_PERAN[akunDemo.peran]}</span>
+              <Button
+                varian="tautan"
                 onClick={() => {
-                  setEmail(e)
-                  setKataSandi('rahasia123')
+                  setEmail(akunDemo.email)
+                  setKataSandi(SANDI_DEMO)
                 }}
               >
-                {e}
-              </button>
+                {akunDemo.email}
+              </Button>
             </li>
           ))}
         </ul>

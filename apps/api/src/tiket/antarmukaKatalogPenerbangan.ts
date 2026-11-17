@@ -76,7 +76,7 @@ export function antarmukaKatalogPenerbangan(db: Db) {
     async ambilPenerbanganUntuk(ids: number[]): Promise<Map<number, PenerbanganLengkap>> {
       if (ids.length === 0) return new Map()
       const baris = await pilihPenerbangan().where(inArray(penerbangan.id, ids))
-      return new Map(baris.map((f) => [f.id, f]))
+      return new Map(baris.map((lengkap) => [lengkap.id, lengkap]))
     },
 
     /**

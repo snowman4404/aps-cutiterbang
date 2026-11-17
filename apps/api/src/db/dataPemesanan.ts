@@ -45,14 +45,14 @@ export function buatDataPemesanan(hariIni: TanggalIso): DataPemesananSeed[] {
   const { penerbangan } = buatDataPenerbangan(hariIni)
   // Penerbangan pertama pada rute dan hari itu (urutan seed), dipilih dari rute yang bukan rute pencarian demo.
   const pada = (asal: string, tujuan: string, hariKe: number) => {
-    const f = penerbangan.find(
-      (p) => p.asal === asal && p.tujuan === tujuan && p.tanggalKeberangkatan === tambahHari(hariIni, hariKe),
+    const ditemukan = penerbangan.find(
+      (kandidat) => kandidat.asal === asal && kandidat.tujuan === tujuan && kandidat.tanggalKeberangkatan === tambahHari(hariIni, hariKe),
     )
-    if (!f) throw new Error(`Penerbangan demo tidak ada: ${asal} -> ${tujuan} hari ke-${hariKe}`)
-    return { nomorPenerbangan: f.nomorPenerbangan, tanggalKeberangkatan: f.tanggalKeberangkatan }
+    if (!ditemukan) throw new Error(`Penerbangan demo tidak ada: ${asal} -> ${tujuan} hari ke-${hariKe}`)
+    return { nomorPenerbangan: ditemukan.nomorPenerbangan, tanggalKeberangkatan: ditemukan.tanggalKeberangkatan }
   }
   const awalHari = Date.parse(`${hariIni}T00:00:00Z`)
-  const jam = (n: number) => awalHari - n * 3_600_000 // n jam sebelum 00:00 UTC hari ini
+  const jam = (jumlah: number) => awalHari - jumlah * 3_600_000 // `jumlah` jam sebelum 00:00 UTC hari ini
 
   const daftar: Omit<DataPemesananSeed, 'penumpang'>[] = [
     { kode: 'CTB001', status: 'WaitingForThePayment', akunEmail: 'penumpang@cutiterbang.test', ...pada('Yogyakarta', 'Denpasar', 7), waktuDibuat: jam(2) },
@@ -60,5 +60,5 @@ export function buatDataPemesanan(hariIni: TanggalIso): DataPemesananSeed[] {
     { kode: 'CTB003', status: 'Booked', akunEmail: 'member1@cutiterbang.test', ...pada('Surabaya', 'Makassar', 6), waktuDibuat: jam(5) },
     { kode: 'CTB004', status: 'Booked', akunEmail: 'member2@cutiterbang.test', ...pada(DEMO.habis.asal, DEMO.habis.tujuan, DEMO.habis.hariKe), nomorPenerbangan: DEMO.habis.nomorPenerbangan, waktuDibuat: jam(8) },
   ]
-  return daftar.map((p) => ({ ...p, penumpang: PENUMPANG[p.akunEmail]! }))
+  return daftar.map((pemesanan) => ({ ...pemesanan, penumpang: PENUMPANG[pemesanan.akunEmail]! }))
 }

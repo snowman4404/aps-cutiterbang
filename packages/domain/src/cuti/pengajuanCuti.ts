@@ -62,13 +62,13 @@ export function validasiPeriode(p: { mulai?: unknown; akhir?: unknown }): HasilP
 /** urutkanDariTanggalMulaiPalingAwal (tidak mengubah masukan). */
 export const urutkanDariTanggalMulaiPalingAwal = <T extends Rentang>(daftar: readonly T[]): T[] =>
   [...daftar].sort(
-    (a, b) => a.tanggalMulai.localeCompare(b.tanggalMulai) || a.tanggalAkhir.localeCompare(b.tanggalAkhir),
+    (pertama, kedua) => pertama.tanggalMulai.localeCompare(kedua.tanggalMulai) || pertama.tanggalAkhir.localeCompare(kedua.tanggalAkhir),
   )
 
 /** urutkanDariPalingBaru: tanggalMulai menurun (tidak mengubah masukan). */
 export const urutkanDariPalingBaru = <T extends Rentang>(daftar: readonly T[]): T[] =>
   [...daftar].sort(
-    (a, b) => b.tanggalMulai.localeCompare(a.tanggalMulai) || b.tanggalAkhir.localeCompare(a.tanggalAkhir),
+    (pertama, kedua) => kedua.tanggalMulai.localeCompare(pertama.tanggalMulai) || kedua.tanggalAkhir.localeCompare(pertama.tanggalAkhir),
   )
 
 /** Pengajuan US-1a: status Diajukan atau Disetujui yang beririsan dengan periode, urut tanggalMulai naik. */
@@ -77,6 +77,6 @@ export function pengajuanPadaPeriode<T extends PengajuanCuti>(
   periode: Periode,
 ): T[] {
   return urutkanDariTanggalMulaiPalingAwal(
-    daftar.filter((p) => STATUS_PADA_DAFTAR.includes(p.status) && beririsan(p, periode)),
+    daftar.filter((pengajuan) => STATUS_PADA_DAFTAR.includes(pengajuan.status) && beririsan(pengajuan, periode)),
   )
 }

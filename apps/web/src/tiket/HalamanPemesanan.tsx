@@ -13,11 +13,11 @@ import {
   type TiketSaya,
 } from '@cutiterbang/domain'
 import { useAuth } from '../akses/AuthContext.tsx'
-import { panggil } from '../akses/api.ts'
+import { panggil } from '../lib/api.ts'
 import { formatTanggal } from '../lib/tanggal.ts'
 import { useAksi } from '../lib/useAksi.ts'
 import { PESAN_GALAT_UMUM, useMuat } from '../lib/useMuat.ts'
-import { Alert, Button, Card, Field, Input, LinkTombol, PageTitle } from '../ui/index.ts'
+import { Alert, Button, Card, Field, Input, JudulBagian, LinkTombol, Memuat, PageTitle } from '../ui/index.ts'
 import { InfoPenerbangan } from './InfoPenerbangan.tsx'
 
 type Isian = Record<KolomDataWajib, string>
@@ -54,13 +54,13 @@ export default function HalamanPemesanan() {
   const { sibuk, jalankan } = useAksi(setPesan)
 
   const penerbangan = data?.penerbangan
-  const ubah = (k: KolomDataWajib, nilai: string) => {
-    setIsian((s) => ({ ...s, [k]: nilai }))
-    setGalat((g) => ({ ...g, [k]: undefined }))
+  const ubah = (kolom: KolomDataWajib, nilai: string) => {
+    setIsian((isianLama) => ({ ...isianLama, [kolom]: nilai }))
+    setGalat((galatLama) => ({ ...galatLama, [kolom]: undefined }))
   }
 
-  function lanjut(e: FormEvent) {
-    e.preventDefault()
+  function lanjut(event: FormEvent) {
+    event.preventDefault()
     const hasil = validasiDataPenumpang(isian, hariIniWib())
     if ('galat' in hasil) {
       setGalat(hasil.galat)
@@ -77,21 +77,21 @@ export default function HalamanPemesanan() {
     jalankan(async () => {
       if (!ringkasan || !penerbangan) return
       setPesan('')
-      const r = await panggil<{ pemesanan?: TiketSaya; galat?: GalatDataWajib; pesan?: string }>('/pemesanan', {
+      const respons = await panggil<{ pemesanan?: TiketSaya; galat?: GalatDataWajib; pesan?: string }>('/pemesanan', {
         body: { idPenerbangan: penerbangan.id, dataPenumpang: ringkasan },
       })
-      if (r.status === 201 && r.data.pemesanan) {
-        void navigate(`/tiket-saya?baru=${encodeURIComponent(r.data.pemesanan.kode)}`)
-      } else if (r.status === 400 && r.data.galat) {
-        setGalat(r.data.galat) // 7a: kembali ke langkah 4 dengan kolom yang salah ditandai
+      if (respons.status === 201 && respons.data.pemesanan) {
+        void navigate(`/tiket-saya?baru=${encodeURIComponent(respons.data.pemesanan.kode)}`)
+      } else if (respons.status === 400 && respons.data.galat) {
+        setGalat(respons.data.galat) // 7a: kembali ke langkah 4 dengan kolom yang salah ditandai
         setTidakLengkap(true)
         setRingkasan(null)
       } else {
-        setPesan(r.data.pesan ?? PESAN_GALAT_UMUM) // 7b: "Kursi sudah habis"; pemesanan tidak dibuat
+        setPesan(respons.data.pesan ?? PESAN_GALAT_UMUM) // 7b: "Kursi sudah habis"; pemesanan tidak dibuat
       }
     })
 
-  if (memuat) return <p className="text-muted">Memuat…</p>
+  if (memuat) return <Memuat />
   if (!penerbangan) return <Alert varian="negative">{galatMuat}</Alert>
 
   const kursiHabis = pesan === PESAN_KURSI_HABIS // 7b: use case berakhir gagal
@@ -103,7 +103,7 @@ export default function HalamanPemesanan() {
       </PageTitle>
 
       <Card>
-        <InfoPenerbangan f={penerbangan} />
+        <InfoPenerbangan penerbangan={penerbangan} />
       </Card>
 
       {pesan && <Alert varian="negative">{pesan}</Alert>}
@@ -117,13 +117,13 @@ export default function HalamanPemesanan() {
         </div>
       ) : ringkasan ? (
         <Card className="flex flex-col gap-4" aria-label="Ringkasan pemesanan">
-          <h2 className="text-lg font-semibold">Ringkasan pemesanan</h2>
+          <JudulBagian>Ringkasan pemesanan</JudulBagian>
           <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-ringkasan">
-            {KOLOM.map((k) => (
-              <div key={k.nama} className="contents">
-                <dt className="text-muted">{k.label}</dt>
-                <dd data-testid={`ringkasan-${k.nama}`}>
-                  {k.nama === 'tanggalLahir' ? formatTanggal(ringkasan[k.nama]) : ringkasan[k.nama]}
+            {KOLOM.map((kolom) => (
+              <div key={kolom.nama} className="contents">
+                <dt className="text-muted">{kolom.label}</dt>
+                <dd data-testid={`ringkasan-${kolom.nama}`}>
+                  {kolom.nama === 'tanggalLahir' ? formatTanggal(ringkasan[kolom.nama]) : ringkasan[kolom.nama]}
                 </dd>
               </div>
             ))}
@@ -140,18 +140,18 @@ export default function HalamanPemesanan() {
       ) : (
         <Card>
           <form onSubmit={lanjut} noValidate className="flex flex-col gap-4">
-            <h2 className="text-lg font-semibold">Data penumpang</h2>
+            <JudulBagian>Data penumpang</JudulBagian>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {KOLOM.map((k) => (
-                <Field key={k.nama} label={k.label} petunjuk={k.petunjuk} galat={galat[k.nama]}>
-                  {(p) => (
+              {KOLOM.map((kolom) => (
+                <Field key={kolom.nama} label={kolom.label} petunjuk={kolom.petunjuk} galat={galat[kolom.nama]}>
+                  {(kontrol) => (
                     <Input
-                      {...p}
-                      name={k.nama}
-                      type={k.jenis ?? 'text'}
-                      inputMode={k.mode}
-                      value={isian[k.nama]}
-                      onChange={(e) => ubah(k.nama, e.target.value)}
+                      {...kontrol}
+                      name={kolom.nama}
+                      type={kolom.jenis ?? 'text'}
+                      inputMode={kolom.mode}
+                      value={isian[kolom.nama]}
+                      onChange={(event) => ubah(kolom.nama, event.target.value)}
                     />
                   )}
                 </Field>

@@ -1,15 +1,18 @@
 import { beforeEach, describe, expect, test } from 'vitest'
-import { PESAN_TIDAK_ADA_AKSES } from '@cutiterbang/domain'
+import { AKUN_DEMO, PESAN_TIDAK_ADA_AKSES, SANDI_DEMO } from '@cutiterbang/domain'
+import { Hono } from 'hono'
 import { buatApp } from '../app.ts'
-import { buatDb } from '../db/client.ts'
+import { buatDb, type Db } from '../db/client.ts'
 import { jalankanMigrasi } from '../db/migrate.ts'
-import { seed, SANDI_DEMO } from '../db/seed.ts'
+import { seed } from '../db/seed.ts'
+import { buatGuard, type Variabel } from './middleware.ts'
 import { hashSandi, cocokSandi } from './sandi.ts'
 
+let db: Db
 let app: ReturnType<typeof buatApp>
 
 beforeEach(async () => {
-  const db = buatDb(':memory:')
+  db = buatDb(':memory:')
   await jalankanMigrasi(db)
   await seed(db)
   app = buatApp(db)
@@ -139,36 +142,69 @@ describe('GET /api/auth/saya dan POST /api/auth/keluar', () => {
   })
 })
 
-describe('guard peran', () => {
-  test('tanpa login: 401', async () => {
-    const res = await kirim('/cuti/pegawai', undefined, undefined, 'GET')
-    expect(res.status).toBe(401)
-  })
+describe('guard peran (semua peran)', () => {
+  // App uji kecil: satu rute per guard, supaya setiap peran diuji terhadap setiap guard.
+  const PERAN_GUARD = ['HRDManajer', 'CalonPenumpang', 'MemberFrequentTraveller', 'ManajerTravel', 'Pengunjung'] as const
+  let appGuard: Hono<Variabel>
 
-  test('peran salah: 403', async () => {
-    const cookie = await masuk('penumpang@cutiterbang.test')
-    const res = await kirim('/cuti/pegawai', undefined, cookie, 'GET')
-    expect(res.status).toBe(403)
-    expect(await res.json()).toEqual({ pesan: PESAN_TIDAK_ADA_AKSES })
-  })
-
-  test('HRDManajer lolos guard HRDManajer', async () => {
-    const cookie = await masuk('hrd@cutiterbang.test')
-    const res = await kirim('/cuti/pegawai', undefined, cookie, 'GET')
-    expect(res.status).toBe(200)
-  })
-
-  test('Member lolos guard CalonPenumpang', async () => {
-    const cookie = await masuk('member1@cutiterbang.test')
-    const res = await kirim('/pemesanan/saya', undefined, cookie, 'GET')
-    expect(res.status).toBe(200)
-  })
-
-  test('Pengunjung dan ManajerTravel ditolak guard CalonPenumpang', async () => {
-    for (const email of ['pengunjung1@cutiterbang.test', 'travel@cutiterbang.test']) {
-      const res = await kirim('/pemesanan/saya', undefined, await masuk(email), 'GET')
-      expect(res.status).toBe(403)
+  beforeEach(() => {
+    const { butuhLogin, butuhPeran } = buatGuard(db)
+    const uji = new Hono<Variabel>()
+    for (const peran of PERAN_GUARD) {
+      uji.get(`/${peran}`, butuhLogin, butuhPeran(peran), (c) => c.json({ ok: true }))
     }
+    appGuard = uji
+  })
+
+  const ambilGuard = (guard: string, cookie?: string) =>
+    appGuard.request(`/${guard}`, { headers: cookie ? { Cookie: cookie } : {} })
+
+  // Peran yang lolos tiap guard: peran itu sendiri; Member juga lolos CalonPenumpang, peran lain tidak mewarisi.
+  const LOLOS: Record<(typeof PERAN_GUARD)[number], readonly string[]> = {
+    HRDManajer: ['HRDManajer'],
+    CalonPenumpang: ['CalonPenumpang', 'MemberFrequentTraveller'],
+    MemberFrequentTraveller: ['MemberFrequentTraveller'],
+    ManajerTravel: ['ManajerTravel'],
+    Pengunjung: ['Pengunjung'],
+  }
+
+  test.each(PERAN_GUARD)('guard %s tanpa login: 401', async (guard) => {
+    const res = await ambilGuard(guard)
+    expect(res.status).toBe(401)
+    expect(await res.json()).toEqual({ pesan: 'Silakan masuk terlebih dahulu' })
+  })
+
+  test.each(AKUN_DEMO)('akun $email ($peran): 200 hanya pada guard yang diizinkan, lainnya 403', async (akunDemo) => {
+    const cookie = await masuk(akunDemo.email)
+    for (const guard of PERAN_GUARD) {
+      const res = await ambilGuard(guard, cookie)
+      if (LOLOS[guard].includes(akunDemo.peran)) {
+        expect(res.status, `${akunDemo.peran} pada guard ${guard}`).toBe(200)
+      } else {
+        expect(res.status, `${akunDemo.peran} pada guard ${guard}`).toBe(403)
+        expect(await res.json()).toEqual({ pesan: PESAN_TIDAK_ADA_AKSES })
+      }
+    }
+  })
+
+  test('rute cuti sungguhan memakai guard HRDManajer', async () => {
+    expect((await kirim('/cuti/pegawai', undefined, undefined, 'GET')).status).toBe(401)
+    expect((await kirim('/cuti/pegawai', undefined, await masuk('penumpang@cutiterbang.test'), 'GET')).status).toBe(403)
+    expect((await kirim('/cuti/pegawai', undefined, await masuk('hrd@cutiterbang.test'), 'GET')).status).toBe(200)
+  })
+
+  test('rute pemesanan sungguhan memakai guard CalonPenumpang (Member juga lolos)', async () => {
+    expect((await kirim('/pemesanan/saya', undefined, undefined, 'GET')).status).toBe(401)
+    for (const email of ['pengunjung1@cutiterbang.test', 'travel@cutiterbang.test', 'hrd@cutiterbang.test']) {
+      expect((await kirim('/pemesanan/saya', undefined, await masuk(email), 'GET')).status, email).toBe(403)
+    }
+    for (const email of ['penumpang@cutiterbang.test', 'member1@cutiterbang.test']) {
+      expect((await kirim('/pemesanan/saya', undefined, await masuk(email), 'GET')).status, email).toBe(200)
+    }
+  })
+
+  test('pencarian penerbangan tetap publik (tanpa login: 200)', async () => {
+    expect((await kirim('/penerbangan/kota', undefined, undefined, 'GET')).status).toBe(200)
   })
 })
 

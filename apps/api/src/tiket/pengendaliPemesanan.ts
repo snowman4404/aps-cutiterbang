@@ -93,8 +93,8 @@ export function buatPengendaliPemesanan(
         const baru = (await data.cariDenganKode(kode))!
         const [pemesanan] = await muatTiketSaya(katalog, [baru], akun, sekarang())
         return { hasil: 'berhasil', pemesanan: pemesanan! }
-      } catch (e) {
-        if (!adalahKodeBentrok(e)) throw e // bentrok kode karena balapan: buat kode baru dan ulangi
+      } catch (galat) {
+        if (!adalahKodeBentrok(galat)) throw galat // bentrok kode karena balapan: buat kode baru dan ulangi
       }
     }
     throw new Error(GALAT_KODE_TIDAK_UNIK)

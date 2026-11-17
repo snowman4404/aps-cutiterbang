@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { samaKode, type TiketSaya } from '@cutiterbang/domain'
-import { panggil } from '../akses/api.ts'
+import { panggil } from '../lib/api.ts'
 import { useAksi } from '../lib/useAksi.ts'
 import { PESAN_GALAT_UMUM, useMuat } from '../lib/useMuat.ts'
 import { Alert, Button, Card, Dialog, EmptyState, Kode, LinkTombol, PageTitle, Pill } from '../ui/index.ts'
@@ -31,16 +31,16 @@ export default function HalamanTiketSaya() {
       if (!target) return
       setPesan('')
       try {
-        const r = await panggil<{ pemesanan?: TiketSaya; pesan?: string }>(
+        const respons = await panggil<{ pemesanan?: TiketSaya; pesan?: string }>(
           `/pemesanan/${encodeURIComponent(target.kode)}/batalkan`,
           { method: 'POST' },
         )
-        const dibatalkan = r.data.pemesanan
-        if (r.status === 200 && dibatalkan) {
-          setDaftar((d) => d?.map((t) => (t.kode === dibatalkan.kode ? dibatalkan : t)) ?? d)
+        const dibatalkan = respons.data.pemesanan
+        if (respons.status === 200 && dibatalkan) {
+          setDaftar((daftarLama) => daftarLama?.map((tiket) => (tiket.kode === dibatalkan.kode ? dibatalkan : tiket)) ?? daftarLama)
         } else {
-          setPesan(r.data.pesan ?? PESAN_GALAT_UMUM)
-          setVersi((v) => v + 1)
+          setPesan(respons.data.pesan ?? PESAN_GALAT_UMUM)
+          setVersi((versiLama) => versiLama + 1)
         }
       } finally {
         setTarget(null)
@@ -66,36 +66,36 @@ export default function HalamanTiketSaya() {
           </EmptyState>
         ) : (
           <ul aria-label="Daftar pemesanan" className="flex flex-col gap-3">
-            {daftar.map((t) => {
-              const disorot = baru !== null && samaKode(t.kode, baru)
+            {daftar.map((tiket) => {
+              const disorot = baru !== null && samaKode(tiket.kode, baru)
               return (
                 <li
-                  key={t.kode}
+                  key={tiket.kode}
                   data-testid="tiket"
-                  data-kode={t.kode}
+                  data-kode={tiket.kode}
                   data-baru={disorot ? 'true' : undefined}
                   aria-current={disorot ? 'true' : undefined}
-                  aria-label={disorot ? `Pemesanan baru ${t.kode}` : undefined}
+                  aria-label={disorot ? `Pemesanan baru ${tiket.kode}` : undefined}
                 >
                   <Card className={`flex flex-col gap-4 ${disorot ? 'outline-2 outline-accent' : ''}`}>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="flex items-center gap-3">
                         <span className="text-sm text-muted">Kode</span>
                         <span data-testid="kode">
-                          <Kode>{t.kode}</Kode>
+                          <Kode>{tiket.kode}</Kode>
                         </span>
                       </span>
                       <span data-testid="status">
-                        <Pill varian={VARIAN_STATUS_BOOKING[t.status]}>{t.label}</Pill>
+                        <Pill varian={VARIAN_STATUS_BOOKING[tiket.status]}>{tiket.label}</Pill>
                       </span>
                     </div>
-                    <InfoPenerbangan f={t.penerbangan} />
+                    <InfoPenerbangan penerbangan={tiket.penerbangan} />
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <span className="text-sm text-muted">
-                        Penumpang: <span className="text-ink" data-testid="penumpang">{t.penumpang.join(', ')}</span>
+                        Penumpang: <span className="text-ink" data-testid="penumpang">{tiket.penumpang.join(', ')}</span>
                       </span>
-                      {t.dapatDibatalkan && (
-                        <Button varian="secondary" ukuran="sm" aria-label={`Batalkan pemesanan ${t.kode}`} onClick={() => setTarget(t)}>
+                      {tiket.dapatDibatalkan && (
+                        <Button varian="secondary" ukuran="sm" aria-label={`Batalkan pemesanan ${tiket.kode}`} onClick={() => setTarget(tiket)}>
                           Batalkan
                         </Button>
                       )}
