@@ -39,6 +39,7 @@ npm workspaces monorepo. Scripts live in the root and each workspace's `package.
 ## Conventions
 
 - Use the spec's shared vocabulary (Indonesian class, operation and status names like `Pemesanan`, `alokasiKursi`, `WaitingForThePayment`) in code, UI text and test names. Copy user-facing messages from the spec word for word (e.g. "Anda tidak memiliki akses ke halaman ini", "Kursi sudah habis").
+- UI uses the components in `apps/web/src/ui` and the style-A tokens in `apps/web/src/index.css`; `design/mockups/clean.html` is the visual reference.
 - Keep the two modules separate: cuti code never imports tiket code and vice versa. They share only auth and role checks.
 - Out-of-scope external systems are simulated: Data Kepegawaian and flights come from seed data; payment (→ Booked), airline confirmation (→ Confirmed) and email are mock API endpoints, with sent emails stored so the UI can display them.
 - Business rules belong in the API (backed by `packages/domain`); the web app shows what the API returns and may validate too, for faster feedback.

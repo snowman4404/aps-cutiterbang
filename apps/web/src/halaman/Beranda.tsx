@@ -1,25 +1,27 @@
 import { Link } from 'react-router'
 import { LABEL_PERAN } from '@cutiterbang/domain'
 import { useAuth } from '../akses/AuthContext.tsx'
-import { menuUntuk } from '../shell/menu.ts'
+import { kelompokMenu, menuUntuk } from '../shell/menu.ts'
+import { Ikon, LinkTombol, PageTitle } from '../ui/index.ts'
 
 export default function Beranda() {
   const { akun, memuat } = useAuth()
-  if (memuat) return <p className="text-slate-500">Memuat…</p>
+  if (memuat) return <p className="text-muted">Memuat…</p>
 
   if (!akun) {
     return (
-      <section className="space-y-4">
-        <h1 className="text-2xl font-semibold">Selamat datang di CutiTerbang</h1>
-        <p className="text-slate-600">Manajemen cuti dan pemesanan tiket pesawat.</p>
-        <div className="flex flex-wrap gap-3">
-          <Link to="/masuk" className="rounded-md bg-sky-700 px-4 py-2 font-medium text-white">
+      <section className="flex max-w-xl flex-col gap-6">
+        <PageTitle finding="Manajemen cuti pegawai dan pemesanan tiket pesawat dalam satu aplikasi, dengan satu login.">
+          CutiTerbang
+        </PageTitle>
+        <div className="flex flex-wrap items-center gap-3">
+          <LinkTombol to="/masuk" varian="primary">
             Masuk
-          </Link>
-          <Link to="/daftar" className="rounded-md border border-sky-700 px-4 py-2 font-medium text-sky-700">
+          </LinkTombol>
+          <LinkTombol to="/daftar" varian="secondary">
             Daftar
-          </Link>
-          <Link to="/penerbangan" className="rounded-md border border-slate-300 px-4 py-2 font-medium">
+          </LinkTombol>
+          <Link to="/penerbangan" className="px-2 text-link hover:underline">
             Cari Penerbangan
           </Link>
         </div>
@@ -28,24 +30,28 @@ export default function Beranda() {
   }
 
   return (
-    <section className="space-y-4">
-      <h1 className="text-2xl font-semibold">
-        Halo, {akun.nama}{' '}
-        <span className="text-base font-normal text-slate-500">({LABEL_PERAN[akun.peran]})</span>
-      </h1>
-      <ul className="grid gap-3 sm:grid-cols-2">
-        {menuUntuk(akun.peran).map((m) => (
-          <li key={m.path}>
-            <Link
-              to={m.path}
-              className="block rounded-lg border border-slate-200 bg-white p-4 shadow-sm hover:border-sky-600"
-            >
-              <span className="font-medium">{m.label}</span>
-              <span className="block text-xs text-slate-500">{m.us}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+    <section className="flex flex-col gap-8">
+      <PageTitle finding={LABEL_PERAN[akun.peran]}>Halo, {akun.nama}</PageTitle>
+      {kelompokMenu(menuUntuk(akun.peran)).map((k) => (
+        <div key={k.grup} className="max-w-2xl">
+          <h2 className="text-base font-semibold tracking-[-0.01em]">{k.grup}</h2>
+          <ul className="mt-2">
+            {k.item.map((m) => (
+              <li key={m.path} className="border-b border-rule last:border-b-0">
+                <Link
+                  to={m.path}
+                  className="group flex min-h-[52px] items-center gap-3 rounded-control py-2 hover:bg-raised max-desk:pr-1"
+                >
+                  <span className="flex-1">{m.label}</span>
+                  <span className="num text-xs text-muted">{m.us}</span>
+                  <span className="num w-14 text-right text-xs text-muted">Fase {m.fase}</span>
+                  <Ikon nama="panah" className="text-muted group-hover:text-ink" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </section>
   )
 }

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
+import { Alert, Button, Card, Field, Input, PageTitle } from '../ui/index.ts'
 import { useAuth } from './AuthContext.tsx'
-import { Kolom, kelasInput, kelasTombol } from './komponen.tsx'
 
 const AKUN_DEMO = [
   ['hrd@cutiterbang.test', 'HRD Manajer'],
@@ -39,70 +39,72 @@ export default function HalamanMasuk() {
   }
 
   return (
-    <div className="mx-auto max-w-md space-y-6">
-      <h1 className="text-2xl font-semibold">Masuk</h1>
-      <form onSubmit={kirim} className="space-y-4">
-        <Kolom label="Email">
-          <input
-            type="email"
-            name="email"
-            autoComplete="username"
-            className={kelasInput}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </Kolom>
-        <Kolom label="Kata sandi">
-          <input
-            type="password"
-            name="kataSandi"
-            autoComplete="current-password"
-            className={kelasInput}
-            value={kataSandi}
-            onChange={(e) => setKataSandi(e.target.value)}
-            required
-          />
-        </Kolom>
-        {pesan && (
-          <p role="alert" className="text-sm text-red-700">
-            {pesan}
+    <div className="flex max-w-[420px] flex-col gap-6">
+      <PageTitle finding="Masuk untuk memakai manajemen cuti atau pemesanan tiket.">Masuk</PageTitle>
+      <Card>
+        <form onSubmit={kirim} className="flex flex-col gap-4">
+          <Field label="Email">
+            {(p) => (
+              <Input
+                {...p}
+                type="email"
+                name="email"
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            )}
+          </Field>
+          <Field label="Kata sandi">
+            {(p) => (
+              <Input
+                {...p}
+                type="password"
+                name="kataSandi"
+                autoComplete="current-password"
+                value={kataSandi}
+                onChange={(e) => setKataSandi(e.target.value)}
+                required
+              />
+            )}
+          </Field>
+          {pesan && <Alert varian="negative">{pesan}</Alert>}
+          <Button type="submit" varian="primary" penuh disabled={sibuk}>
+            Masuk
+          </Button>
+          <p className="text-muted">
+            Belum punya akun?{' '}
+            <Link to="/daftar" className="text-link hover:underline">
+              Daftar
+            </Link>
           </p>
-        )}
-        <button type="submit" className={kelasTombol} disabled={sibuk}>
-          Masuk
-        </button>
-        <p className="text-sm text-slate-600">
-          Belum punya akun?{' '}
-          <Link to="/daftar" className="text-sky-700 underline">
-            Daftar
-          </Link>
-        </p>
-      </form>
+        </form>
+      </Card>
 
-      <aside className="rounded-md border border-slate-200 bg-slate-50 p-4 text-sm" data-testid="akun-demo">
-        <h2 className="font-semibold">Akun demo</h2>
-        <p className="mt-1 text-slate-600">
-          Kata sandi semua akun: <code className="font-mono">rahasia123</code>
+      <Card varian="raised" data-testid="akun-demo">
+        <h2 className="text-base font-semibold tracking-[-0.01em]">Akun demo</h2>
+        <p className="mt-1 text-muted">
+          Kata sandi semua akun: <code className="font-mono text-sm font-medium text-ink">rahasia123</code>
         </p>
-        <ul className="mt-2 space-y-1">
+        <ul className="mt-3 flex flex-col gap-2">
           {AKUN_DEMO.map(([e, peran]) => (
-            <li key={e}>
+            <li key={e} className="flex flex-col gap-0 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+              <span className="text-muted">{peran}</span>
               <button
                 type="button"
-                className="text-left text-sky-700 hover:underline"
+                className="text-left text-link hover:underline"
                 onClick={() => {
                   setEmail(e)
                   setKataSandi('rahasia123')
                 }}
               >
                 {e}
-              </button>{' '}
-              <span className="text-slate-500">({peran})</span>
+              </button>
             </li>
           ))}
         </ul>
-      </aside>
+      </Card>
     </div>
   )
 }

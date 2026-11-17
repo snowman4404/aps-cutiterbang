@@ -13,6 +13,9 @@ What each file does. Update this file whenever you add, move, rename or delete a
 | `docs/roadmap.md` | Build phases, gap decisions per phase, progress checkboxes |
 | `e2e/smoke.spec.ts` | Smoke test: page loads and reaches `/api/health` |
 | `e2e/akses.spec.ts` | Phase 1 e2e: login per role and role nav, `?next=` redirect, no-access message, sign-up, logout, reset. Calls `POST /api/dev/reset` before each test |
+| `e2e/tema.spec.ts` | Theme toggle sets `data-theme` on `<html>` and persists after reload |
+| `e2e/visual.spec.ts` | Style-review screenshots to `.taste-skill/app-shots/` (gitignored); skipped unless `VISUAL=1` (`VISUAL=1 npx playwright test e2e/visual.spec.ts`) |
+| `design/mockups/` | Static style mockups A/B/C; A (`clean.*`) is the chosen reference |
 
 ## packages/domain (pure logic, shared)
 
@@ -49,19 +52,32 @@ What each file does. Update this file whenever you add, move, rename or delete a
 
 | File | Purpose |
 |---|---|
-| `index.html` | HTML shell (`lang="id"`) |
+| `index.html` | HTML shell (`lang="id"`); IBM Plex Sans/Mono links; inline script applying the saved theme before first paint |
 | `vite.config.ts` | React + Tailwind plugins; proxies `/api` to port 8787 |
 | `src/main.tsx` | React entry |
 | `src/App.tsx` | `AuthProvider` + `RouterProvider` |
 | `src/router.tsx` | `createBrowserRouter`: shell layout, `/`, `/masuk`, `/daftar`, and one guarded placeholder route per `MENU` item |
-| `src/index.css` | Tailwind import |
+| `src/index.css` | Style-A tokens (light/dark, `:root` + `data-theme`), Tailwind `@theme` mapping (colours, radii, `desk` breakpoint 1101px, fonts), base styles, `.tabel` table styles |
 | `src/akses/api.ts` | `panggil()` fetch helper returning status + JSON |
 | `src/akses/AuthContext.tsx` | `AuthProvider` / `useAuth`: `akun`, `masuk`, `daftar`, `keluar`, `muatUlang` (loads `/api/auth/saya` on start) |
 | `src/akses/Butuh.tsx` | Route guard `<Butuh peran>`: logged out -> `/masuk?next=`, wrong role -> `PESAN_TIDAK_ADA_AKSES` only |
 | `src/akses/HalamanMasuk.tsx` | Login page with demo-accounts box |
 | `src/akses/HalamanDaftar.tsx` | Sign-up page (client + API field errors) |
-| `src/akses/komponen.tsx` | Form field wrapper and input/button class names |
-| `src/shell/menu.ts` | `MENU`: single source of truth (route, label, roles, phase, US) + `menuUntuk(peran)` |
-| `src/shell/Layout.tsx` | Header (brand, role-filtered nav, user, Keluar), footer "Reset data" |
-| `src/halaman/Beranda.tsx` | Home: greeting + role menu cards, or links when logged out |
+| `src/shell/menu.ts` | `MENU`: single source of truth (route, grup, label, roles, phase, US) + `menuUntuk(peran)` + `kelompokMenu()` (group by `URUTAN_GRUP`) |
+| `src/shell/Layout.tsx` | Tinted L-frame: sidebar (brand, grouped nav, Reset data demo, user row + Keluar), 48px top bar (theme toggle, Masuk/Daftar), white sheet; phone: sticky 56px bar + full-screen menu sheet |
+| `src/halaman/Beranda.tsx` | Home: greeting + role menu as grouped rows, or intro + Masuk/Daftar when logged out |
 | `src/halaman/Placeholder.tsx` | "Belum dibuat — Fase N" page used until each phase builds its screen |
+| `src/ui/index.ts` | Barrel for the UI kit |
+| `src/ui/README.md` | UI kit components and house style rules |
+| `src/ui/Button.tsx` | `Button`, `LinkTombol`, `kelasTombol` (primary/secondary/ghost, 32/38px) |
+| `src/ui/Field.tsx` | `Field` (label, error, aria wiring), `Input`, `Select` |
+| `src/ui/Card.tsx` | `Card` (default/raised) |
+| `src/ui/PageTitle.tsx` | h1 + optional finding line |
+| `src/ui/Pill.tsx` | Status `Pill` (positive/accent/warning/neutral/negative), `kelasPill` |
+| `src/ui/Chip.tsx` | Toggle chip (`aria-pressed`) |
+| `src/ui/Kode.tsx` | Booking code in Plex Mono |
+| `src/ui/Alert.tsx` | Negative/warning/neutral alert block |
+| `src/ui/EmptyState.tsx` | One-sentence empty state |
+| `src/ui/DataTable.tsx` | Table wrapper using `.tabel` styles |
+| `src/ui/Ikon.tsx` | Inline 16px line icons |
+| `src/ui/tema.tsx` | `useGelap`, `TombolTema` (stores `cutiterbang-tema` in localStorage) |

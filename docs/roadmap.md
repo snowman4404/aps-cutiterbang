@@ -19,10 +19,10 @@ Phases run in order: each one builds on the data and screens of the one before. 
 
 ## Phase 1b: Style foundation
 **Decided (2026-11-17):** style A "Clean & professional" (`design/mockups/clean.html`, tokens in `clean.css` + `layout.css`), light + dark mode following the device with a manual toggle.
-- [ ] Tokens (light/dark) and IBM Plex Sans/Mono in the web app; theme toggle
-- [ ] Shell restyled: tinted L-frame (sidebar + top bar), white sheet, phone menu
-- [ ] Shared components: buttons, fields, table, status pill, chips, card, empty/error states
-- [ ] Phase 1 pages (masuk, daftar, beranda, placeholders, no-access) restyled
+- [x] Tokens (light/dark) and IBM Plex Sans/Mono in the web app; theme toggle
+- [x] Shell restyled: tinted L-frame (sidebar + top bar), white sheet, phone menu
+- [x] Shared components: buttons, fields, table, status pill, chips, card, empty/error states
+- [x] Phase 1 pages (masuk, daftar, beranda, placeholders, no-access) restyled
 
 ## Phase 2: Module A, Manajemen Cuti
 **Decision:** G9 (leave spanning 31 Dec counts toward the start year; can remaining leave go negative?)

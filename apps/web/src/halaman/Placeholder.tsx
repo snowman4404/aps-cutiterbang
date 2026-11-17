@@ -1,10 +1,11 @@
 import type { ItemMenu } from '../shell/menu.ts'
+import { EmptyState, PageTitle } from '../ui/index.ts'
 
 export default function Placeholder({ item }: { item: ItemMenu }) {
   return (
-    <section className="space-y-2">
-      <h1 className="text-2xl font-semibold">{item.label}</h1>
-      <p className="text-slate-600">Belum dibuat — Fase {item.fase}</p>
+    <section className="flex flex-col gap-6">
+      <PageTitle finding={`Belum dibuat — Fase ${item.fase}`}>{item.label}</PageTitle>
+      <EmptyState>Fitur ini akan tersedia setelah fase pembangunannya selesai.</EmptyState>
     </section>
   )
 }
