@@ -14,7 +14,7 @@ export type HasilBatalkan =
 
 export function buatPengendaliPembatalan(katalog: AntarmukaKatalogPenerbangan, data: AntarmukaPemesanan, sekarang: () => Date) {
   /** tentukanPemesananDapatDibatalkan(akun) (langkah 2a): "Tiket Saya" dengan penanda dapatDibatalkan per pemesanan. */
-  async function tentukanPemesananDapatDibatalkan(akun: Pick<Akun, 'id'>): Promise<{ pemesanan: TiketSaya[] }> {
+  async function tentukanPemesananDapatDibatalkan(akun: Pick<Akun, 'id' | 'peran'>): Promise<{ pemesanan: TiketSaya[] }> {
     return { pemesanan: await muatTiketSaya(katalog, await data.tiketSaya(akun.id), akun, sekarang()) }
   }
 
@@ -22,7 +22,7 @@ export function buatPengendaliPembatalan(katalog: AntarmukaKatalogPenerbangan, d
    * batalkan(b) = kontrak C3 (langkah 5-6), dipanggil setelah pemesan mengonfirmasi di dialog:
    * pemesan harus akun ini (G4), belum Cancelled, belum berangkat; lalu Cancelled dan alokasi kursi dilepas.
    */
-  async function batalkan(akun: Pick<Akun, 'id'>, kode: string): Promise<HasilBatalkan> {
+  async function batalkan(akun: Pick<Akun, 'id' | 'peran'>, kode: string): Promise<HasilBatalkan> {
     const b = await data.cariDenganKode(kode)
     if (!b || b.pemesanId !== akun.id) return { hasil: 'tidakDitemukan' }
 

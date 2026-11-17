@@ -50,6 +50,13 @@
       "when": 1794901140518,
       "tag": "0006_cool_dragon_man",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1794947157285,
+      "tag": "0007_tired_husk",
+      "breakpoints": true
     }
   ]
 }

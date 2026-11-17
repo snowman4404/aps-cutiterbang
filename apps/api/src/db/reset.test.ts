@@ -6,6 +6,7 @@ import { resetData, tabelSkema, urutanHapus } from './reset.ts'
 import {
   akun,
   alokasiKursi,
+  emailTerkirim,
   etiket,
   hariLibur,
   kota,
@@ -97,6 +98,7 @@ async function sisipkanBarisPenanda() {
   await db.insert(profil).values({ akunId: akunBaru.id })
   await db.insert(etiket).values({ pemesananId: pemesananBaru.id, nomorETiket: 'ET-PENANDA', waktuTerbit: new Date() })
   await db.insert(perjalananTercatat).values({ akunId: akunBaru.id, pemesananId: pemesananBaru.id })
+  await db.insert(emailTerkirim).values({ pemesananId: pemesananBaru.id, akunId: akunBaru.id, kepada: 'penanda@x.test', subjek: 'penanda', isi: 'penanda', waktuKirim: new Date() })
 }
 
 describe('resetData', () => {

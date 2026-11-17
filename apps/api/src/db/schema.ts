@@ -169,8 +169,8 @@ export const profil = sqliteTable('profil', {
   email: text('email'),
 })
 
-// ETiket minimal (Fase 5): satu per Pemesanan (UNIQUE). Ada hanya setelah Confirmed (inv ConfirmedPunyaETiket dan
-// ETiketHanyaSetelahConfirmed); tetap ada bila Pemesanan Confirmed kemudian Cancelled (G5). Simulator dan email: Fase 6.
+// ETiket: satu per Pemesanan (UNIQUE), diterbitkan saat Pemesanan menjadi Confirmed (US-8d). Ada hanya setelah Confirmed (inv ConfirmedPunyaETiket dan
+// ETiketHanyaSetelahConfirmed); tetap ada bila Pemesanan Confirmed kemudian Cancelled (G5; tampil sebagai void).
 export const etiket = sqliteTable('etiket', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   pemesananId: integer('pemesanan_id')
@@ -194,6 +194,26 @@ export const perjalananTercatat = sqliteTable(
       .references(() => pemesanan.id),
   },
   (tabel) => [unique().on(tabel.akunId, tabel.pemesananId)],
+)
+
+// Kotak keluar Layanan Email (mock, US-8d): email e-tiket yang "dikirim" saat Pemesanan menjadi Confirmed. Satu per
+// pemesanan dan alamat (UNIQUE). `akunId` = pengunjung yang profilnya memberi alamat itu, supaya UI dapat menampilkannya kepadanya.
+export const emailTerkirim = sqliteTable(
+  'email_terkirim',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    pemesananId: integer('pemesanan_id')
+      .notNull()
+      .references(() => pemesanan.id),
+    akunId: integer('akun_id')
+      .notNull()
+      .references(() => akun.id),
+    kepada: text('kepada').notNull(),
+    subjek: text('subjek').notNull(),
+    isi: text('isi').notNull(),
+    waktuKirim: integer('waktu_kirim', { mode: 'timestamp_ms' }).notNull(),
+  },
+  (tabel) => [unique().on(tabel.pemesananId, tabel.kepada), index('email_terkirim_akun').on(tabel.akunId)],
 )
 
 export type Akun = typeof akun.$inferSelect

@@ -111,9 +111,11 @@ describe('Profil (US-5a)', () => {
       [MEMBER2]: 'Andi Pratama',
       'pengunjung1@cutiterbang.test': 'Maya Lestari',
       'pengunjung2@cutiterbang.test': 'Rizky Hidayat',
+      'pengunjung3@cutiterbang.test': 'Citra Anggraini',
     })
     expect(LENGKAP).toEqual(PENUMPANG[MEMBER1])
     expect(statusProfil(PROFIL_DEMO['pengunjung1@cutiterbang.test']!, HARI_INI)).toBe('lengkap')
+    expect(statusProfil(PROFIL_DEMO['pengunjung3@cutiterbang.test']!, HARI_INI)).toBe('lengkap')
     expect(statusProfil(PROFIL_DEMO['pengunjung2@cutiterbang.test']!, HARI_INI)).toBe('tidakLengkap')
     expect(statusProfil(PROFIL_DEMO[MEMBER2]!, HARI_INI)).toBe('tidakLengkap')
   })
@@ -186,7 +188,7 @@ describe('Profil (US-5a)', () => {
     await simpan(cookie, { ...LENGKAP, namaLengkap: 'Sari Baru' })
     await seed(db, HARI_INI)
     expect((await ambilProfil(cookie)).data.namaLengkap).toBe('Sari Baru')
-    expect((await db.select({ n: count() }).from(profil))[0]!.n).toBe(4)
+    expect((await db.select({ n: count() }).from(profil))[0]!.n).toBe(5)
   })
 })
 

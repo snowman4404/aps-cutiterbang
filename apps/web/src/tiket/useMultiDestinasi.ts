@@ -25,7 +25,6 @@ export interface HasilSegmen {
 }
 
 const PARAM = 'seg'
-const duaKosong = (): Segmen[] => Array.from({ length: JUMLAH_SEGMEN_MINIMAL }, () => ({ ...SEGMEN_KOSONG }))
 
 /** Satu parameter `seg=<asal>,<tujuan>,<tanggal>` menjadi segmen (kolom yang kurang = kosong). */
 const segmenDariParam = (teks: string): Segmen => {
