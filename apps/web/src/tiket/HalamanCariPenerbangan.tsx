@@ -1,5 +1,6 @@
 import type { FormEvent } from 'react'
-import { PESAN_PENERBANGAN_TIDAK_DITEMUKAN } from '@cutiterbang/domain'
+import { PESAN_PENERBANGAN_TIDAK_DITEMUKAN, punyaPeran } from '@cutiterbang/domain'
+import { useAuth } from '../akses/AuthContext.tsx'
 import { formatTanggalDenganHari } from '../lib/tanggal.ts'
 import { Alert, Button, Card, EmptyState, Field, Input, LinkTombol, PageTitle } from '../ui/index.ts'
 import { formatHarga, formatWaktu } from './format.ts'
@@ -10,6 +11,9 @@ import { useCariPenerbangan } from './useCariPenerbangan.ts'
 // ada di `useCariPenerbangan`; halaman ini hanya menampilkan.
 export default function HalamanCariPenerbangan() {
   const { kota, pesanKota, isian, ubahIsian, cari, galat, pesan, sibuk, hasil } = useCariPenerbangan()
+  const { akun, memuat } = useAuth()
+  // Pesan hanya untuk yang belum login atau berperan CalonPenumpang (Member juga); peran lain tidak memesan tiket.
+  const bolehPesan = !memuat && (akun === null || punyaPeran(akun.peran, ['CalonPenumpang']))
 
   function kirim(e: FormEvent) {
     e.preventDefault()
@@ -22,7 +26,7 @@ export default function HalamanCariPenerbangan() {
         Cari Penerbangan
       </PageTitle>
       <Card>
-        <form onSubmit={kirim} noValidate className="grid grid-cols-1 gap-4 sm:grid-cols-2 desk:grid-cols-[1fr_1fr_200px_auto] desk:items-start">
+        <form onSubmit={kirim} noValidate className="grid grid-cols-1 gap-4 sm:grid-cols-2 desk:grid-cols-cari desk:items-start">
           <PilihKota
             label="Kota asal"
             name="asal"
@@ -46,7 +50,7 @@ export default function HalamanCariPenerbangan() {
               <Input {...p} type="date" name="tanggal" value={isian.tanggal} onChange={(e) => ubahIsian('tanggal', e.target.value)} />
             )}
           </Field>
-          <div className="sm:col-span-2 desk:col-span-1 desk:pt-[22px]">
+          <div className="sm:col-span-2 desk:col-span-1 desk:pt-label-field">
             <Button type="submit" varian="primary" disabled={sibuk}>
               Cari
             </Button>
@@ -87,9 +91,11 @@ export default function HalamanCariPenerbangan() {
                       Sisa {f.sisaKursi} kursi
                     </span>
                   </div>
-                  <LinkTombol to={`/pesan/${f.id}`} varian="primary" ukuran="sm" aria-label={`Pesan ${f.nomorPenerbangan}`}>
-                    Pesan
-                  </LinkTombol>
+                  {bolehPesan && (
+                    <LinkTombol to={`/pesan/${f.id}`} varian="primary" ukuran="sm" aria-label={`Pesan ${f.nomorPenerbangan}`}>
+                      Pesan
+                    </LinkTombol>
+                  )}
                 </Card>
               </li>
             ))}

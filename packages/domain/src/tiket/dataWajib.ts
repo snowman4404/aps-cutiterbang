@@ -15,40 +15,37 @@ export type GalatDataWajib = Partial<Record<KolomDataWajib, string>>
 /** Isian mentah (mis. badan JSON): belum tentu string. */
 export type DataWajibMentah = Partial<Record<KolomDataWajib, unknown>>
 
-export const PESAN_NAMA_WAJIB = 'Nama lengkap wajib diisi'
-export const PESAN_NAMA_TERLALU_PANJANG = 'Nama lengkap maksimal 100 karakter'
-export const PESAN_IDENTITAS_WAJIB = 'Nomor identitas wajib diisi'
-export const PESAN_IDENTITAS_FORMAT = 'Nomor identitas harus 16 digit'
-export const PESAN_TANGGAL_LAHIR_WAJIB = 'Tanggal lahir wajib diisi'
-export const PESAN_TANGGAL_LAHIR_FORMAT = 'Format tanggal lahir tidak valid (contoh: 1990-12-31)'
-export const PESAN_TANGGAL_LAHIR_LAMPAU = 'Tanggal lahir harus sebelum hari ini'
-export const PESAN_TELEPON_WAJIB = 'Nomor telepon wajib diisi'
-export const PESAN_TELEPON_FORMAT = 'Nomor telepon harus 10 sampai 13 digit'
-export const PESAN_EMAIL_WAJIB = 'Email wajib diisi'
-export const PESAN_EMAIL_FORMAT = 'Email harus berbentuk nama@domain'
+// Pesan per kolom = frasa "Variasi teknologi dan data" US-2a; dipakai untuk kolom kosong maupun salah format.
+export const PESAN_NAMA_LENGKAP = 'Nama lengkap 1 sampai 100 karakter'
+export const PESAN_NOMOR_IDENTITAS = 'Nomor identitas 16 digit'
+export const PESAN_TANGGAL_LAHIR = 'Tanggal lahir sebelum hari ini'
+export const PESAN_NOMOR_TELEPON = 'Nomor telepon 10 sampai 13 digit'
+export const PESAN_EMAIL = 'Email berbentuk nama@domain'
+/** Ekstensi 7a: tampil bersama penanda kolom yang salah. */
+export const PESAN_DATA_PENUMPANG_TIDAK_LENGKAP = 'Data penumpang wajib tidak lengkap'
 
-const PESAN_WAJIB: Record<KolomDataWajib, string> = {
-  namaLengkap: PESAN_NAMA_WAJIB,
-  nomorIdentitas: PESAN_IDENTITAS_WAJIB,
-  tanggalLahir: PESAN_TANGGAL_LAHIR_WAJIB,
-  nomorTelepon: PESAN_TELEPON_WAJIB,
-  email: PESAN_EMAIL_WAJIB,
+const PESAN_KOLOM: Record<KolomDataWajib, string> = {
+  namaLengkap: PESAN_NAMA_LENGKAP,
+  nomorIdentitas: PESAN_NOMOR_IDENTITAS,
+  tanggalLahir: PESAN_TANGGAL_LAHIR,
+  nomorTelepon: PESAN_NOMOR_TELEPON,
+  email: PESAN_EMAIL,
 }
 
 /** Galat format sebuah nilai yang tidak kosong (sudah di-trim); null = format valid (OCL formatValid per kolom). */
 function galatFormat(kolom: KolomDataWajib, nilai: string, hariIni: TanggalIso): string | null {
   switch (kolom) {
     case 'namaLengkap':
-      return nilai.length > 100 ? PESAN_NAMA_TERLALU_PANJANG : null
+      return nilai.length > 100 ? PESAN_NAMA_LENGKAP : null
     case 'nomorIdentitas':
-      return /^[0-9]{16}$/.test(nilai) ? null : PESAN_IDENTITAS_FORMAT
+      return /^[0-9]{16}$/.test(nilai) ? null : PESAN_NOMOR_IDENTITAS
     case 'tanggalLahir':
-      if (!adalahTanggalIso(nilai)) return PESAN_TANGGAL_LAHIR_FORMAT
-      return nilai < hariIni ? null : PESAN_TANGGAL_LAHIR_LAMPAU
+      if (!adalahTanggalIso(nilai)) return PESAN_TANGGAL_LAHIR
+      return nilai < hariIni ? null : PESAN_TANGGAL_LAHIR
     case 'nomorTelepon':
-      return /^[0-9]{10,13}$/.test(nilai) ? null : PESAN_TELEPON_FORMAT
+      return /^[0-9]{10,13}$/.test(nilai) ? null : PESAN_NOMOR_TELEPON
     case 'email':
-      return /^[^@]+@[^@]+$/.test(nilai) ? null : PESAN_EMAIL_FORMAT
+      return /^[^@]+@[^@]+$/.test(nilai) ? null : PESAN_EMAIL
   }
 }
 
@@ -66,7 +63,8 @@ export const lengkap = (d: DataWajibMentah, hariIni: TanggalIso): boolean =>
   KOLOM_DATA_WAJIB.every((k) => teks(d[k]) !== '') && formatValid(d, hariIni)
 
 /**
- * validasiDataPenumpang (US-2a langkah 7, ekstensi 7a): setiap kolom wajib dan berformat valid.
+ * validasiDataPenumpang (US-2a langkah 7, ekstensi 7a): setiap kolom wajib dan berformat valid;
+ * pesan per kolom sama untuk kosong dan salah format (frasa spesifikasi).
  * Mengembalikan `{ data }` (nilai sudah di-trim) atau `{ galat }` per kolom.
  * `hariIni` = tanggal hari ini (WIB); tanggal lahir harus sebelum hari ini.
  */
@@ -78,7 +76,7 @@ export function validasiDataPenumpang(
   const data = {} as DataWajib
   for (const k of KOLOM_DATA_WAJIB) {
     const nilai = teks(mentah[k])
-    if (nilai === '') galat[k] = PESAN_WAJIB[k]
+    if (nilai === '') galat[k] = PESAN_KOLOM[k]
     else {
       const g = galatFormat(k, nilai, hariIni)
       if (g) galat[k] = g

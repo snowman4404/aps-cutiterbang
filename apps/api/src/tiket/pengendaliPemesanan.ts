@@ -1,12 +1,10 @@
-// Control PengendaliPemesanan (US-2a, kontrak C1) dan pemetaan Pemesanan -> baris "Tiket Saya" yang dipakai
-// juga oleh PengendaliPembatalan.
+// Control PengendaliPemesanan (US-2a, kontrak C1).
 import {
+  bolehAlokasi,
   buatKodeBooking,
-  dapatDibatalkanPada,
-  LABEL_STATUS_BOOKING,
   PESAN_KURSI_HABIS,
-  tersedia,
-  validasiDataPenumpang,
+  validasiDataPenumpang as validasiDataWajib,
+  waktuBerangkatAbsolut,
   type DataWajibMentah,
   type GalatDataWajib,
   type InformasiPenerbangan,
@@ -14,42 +12,12 @@ import {
   type TiketSaya,
 } from '@cutiterbang/domain'
 import type { Akun } from '../db/schema.ts'
-import { keHasilPencarian, type AntarmukaKatalogPenerbangan, type PenerbanganLengkap } from './antarmukaKatalogPenerbangan.ts'
-import { adalahKodeBentrok, type AntarmukaPemesanan, type PemesananBaris } from './antarmukaPemesanan.ts'
+import type { AntarmukaKatalogPenerbangan } from './antarmukaKatalogPenerbangan.ts'
+import { adalahKodeBentrok, type AntarmukaPemesanan } from './antarmukaPemesanan.ts'
+import { keInformasiPenerbangan, muatTiketSaya } from './tiketSaya.ts'
 
 const PERCOBAAN_KODE = 5
-
-/** informasiPenerbangan: baris hasil pencarian + /tersedia. */
-export const keInformasiPenerbangan = (f: PenerbanganLengkap, penumpangAktif: number, sekarang: Date): InformasiPenerbangan => ({
-  ...keHasilPencarian(f, penumpangAktif),
-  tersedia: tersedia(f, sekarang, penumpangAktif),
-})
-
-/**
- * Baris Tiket Saya untuk `akun`. `dapatDibatalkan` hanya benar bila akun adalah pemesan (G4) dan
- * Pemesanan.dapatDibatalkan() berlaku (belum Cancelled, belum berangkat menurut waktu setempat, G1).
- */
-export async function muatTiketSaya(
-  katalog: AntarmukaKatalogPenerbangan,
-  baris: PemesananBaris[],
-  akun: Pick<Akun, 'id'>,
-  sekarang: Date,
-): Promise<TiketSaya[]> {
-  const ids = [...new Set(baris.map((b) => b.penerbanganId))]
-  const [penerbangan, aktif] = await Promise.all([katalog.ambilPenerbanganUntuk(ids), katalog.jumlahPenumpangAktif(ids)])
-  return baris.map((b) => {
-    const f = penerbangan.get(b.penerbanganId)!
-    return {
-      kode: b.kode,
-      status: b.status,
-      label: LABEL_STATUS_BOOKING[b.status],
-      waktuDibuat: b.waktuDibuat.toISOString(),
-      dapatDibatalkan: b.pemesanId === akun.id && dapatDibatalkanPada(b.status, f, sekarang),
-      penumpang: b.penumpang.map((p) => p.namaLengkap),
-      penerbangan: keInformasiPenerbangan(f, aktif.get(f.id) ?? 0, sekarang),
-    }
-  })
-}
+export const GALAT_KODE_TIDAK_UNIK = 'Tidak berhasil membuat kode booking yang unik'
 
 export type HasilKonfirmasi =
   | { hasil: 'galat'; galat: GalatDataWajib }
@@ -79,15 +47,15 @@ export function buatPengendaliPemesanan(
   }
 
   /** validasiDataPenumpang (langkah 7, 7a): setiap kolom wajib dan berformat valid. */
-  const validasiPenumpang = (mentah: DataWajibMentah) => validasiDataPenumpang(mentah, hariIni())
+  const validasiDataPenumpang = (mentah: DataWajibMentah) => validasiDataWajib(mentah, hariIni())
 
-  /** buatKodeUnik (langkah 8): kode acak yang belum dipakai pemesanan mana pun (kode normal unik, G3). */
-  async function buatKodeUnik(): Promise<string> {
-    for (let i = 0; i < PERCOBAAN_KODE; i++) {
-      const kode = buatKodeBooking(acak)
-      if (!(await data.cariDenganKode(kode))) return kode
-    }
-    throw new Error('Tidak berhasil membuat kode booking yang unik')
+  /**
+   * buatKodeUnik (langkah 8): satu kode acak yang saat ini belum dipakai pemesanan mana pun (kode normal unik, G3),
+   * atau null bila kode acak itu sudah dipakai. Pengulangan ada di `konfirmasi` (satu-satunya loop percobaan).
+   */
+  async function buatKodeUnik(): Promise<string | null> {
+    const kode = buatKodeBooking(acak)
+    return (await data.cariDenganKode(kode)) ? null : kode
   }
 
   /**
@@ -95,20 +63,30 @@ export function buatPengendaliPemesanan(
    * lalu Pemesanan(WaitingForThePayment) dengan satu Penumpang yang mewakili akun. Gagal = tidak ada yang dibuat.
    */
   async function konfirmasi(akun: Akun, idPenerbangan: number, mentah: DataWajibMentah): Promise<HasilKonfirmasi> {
-    const info = await informasiPenerbangan(idPenerbangan)
-    if (!info) return { hasil: 'tidakDitemukan' }
+    const f = await katalog.ambilPenerbangan(idPenerbangan)
+    if (!f) return { hasil: 'tidakDitemukan' }
 
-    const v = validasiPenumpang(mentah)
+    const v = validasiDataPenumpang(mentah)
     if ('galat' in v) return { hasil: 'galat', galat: v.galat }
 
-    // 7b: sudah habis atau sudah berangkat. Ini hanya jalan pintas; penolakan sesungguhnya ada di alokasiKursi.
-    if (!info.tersedia) return { hasil: 'habis', pesan: PESAN_KURSI_HABIS }
+    // 7b (jalan pintas): kursi tidak cukup menurut aturan domain bolehAlokasi. Penolakan yang sahih tetap dari
+    // alokasiKursi, yang menerapkan aturan yang sama secara atomik di SQL; hitungan ini bisa usang karena balapan.
+    const terpakai = (await katalog.jumlahPenumpangAktif([idPenerbangan])).get(idPenerbangan) ?? 0
+    if (!bolehAlokasi(f.jumlahKursi, terpakai, 1)) return { hasil: 'habis', pesan: PESAN_KURSI_HABIS }
 
     for (let i = 0; i < PERCOBAAN_KODE; i++) {
       const kode = await buatKodeUnik()
+      if (kode === null) continue // kode acak sudah dipakai: coba kode lain
+
+      // 7b (sudah berangkat): waktu berangkat tidak pernah berubah, jadi memeriksanya dengan sekarang() yang baru
+      // tepat sebelum alokasiKursi setara dengan memeriksanya di dalam transaksi; hanya jumlah kursi yang bisa
+      // berubah serentak, dan itu dijaga SQL di alokasiKursi.
+      const waktuDibuat = sekarang()
+      if (!(waktuBerangkatAbsolut(f) > waktuDibuat.getTime())) return { hasil: 'habis', pesan: PESAN_KURSI_HABIS }
+
       try {
         const alokasi = await data.alokasiKursi(
-          { kode, penerbanganId: idPenerbangan, pemesanId: akun.id, waktuDibuat: sekarang(), data: v.data },
+          { kode, penerbanganId: idPenerbangan, pemesanId: akun.id, waktuDibuat, data: v.data },
           1,
         )
         if (alokasi === 'ditolak') return { hasil: 'habis', pesan: PESAN_KURSI_HABIS }
@@ -119,8 +97,8 @@ export function buatPengendaliPemesanan(
         if (!adalahKodeBentrok(e)) throw e // bentrok kode karena balapan: buat kode baru dan ulangi
       }
     }
-    throw new Error('Tidak berhasil membuat kode booking yang unik')
+    throw new Error(GALAT_KODE_TIDAK_UNIK)
   }
 
-  return { informasiPenerbangan, siapkanRingkasan, validasiDataPenumpang: validasiPenumpang, buatKodeUnik, konfirmasi }
+  return { informasiPenerbangan, siapkanRingkasan, validasiDataPenumpang, buatKodeUnik, konfirmasi }
 }

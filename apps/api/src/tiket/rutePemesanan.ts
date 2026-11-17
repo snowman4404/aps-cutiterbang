@@ -1,9 +1,9 @@
 // /api/pemesanan: memesan tiket (US-2a), Tiket Saya, dan membatalkan pemesanan (US-2b). Hanya CalonPenumpang (Member juga).
 import { Hono } from 'hono'
 import {
-  PESAN_PEMESANAN_TIDAK_DITEMUKAN,
+  PESAN_KODE_TIDAK_DITEMUKAN,
   PESAN_PENERBANGAN_TIDAK_DITEMUKAN,
-  PESAN_TIDAK_ADA_AKSES,
+  PESAN_TIDAK_DAPAT_DIBATALKAN,
   type TanggalIso,
 } from '@cutiterbang/domain'
 import { buatGuard, type Variabel } from '../akses/middleware.ts'
@@ -52,11 +52,9 @@ export function rutePemesanan(db: Db, hariIni: () => TanggalIso, sekarang: () =>
       case 'berhasil':
         return c.json({ pemesanan: hasil.pemesanan })
       case 'tidakDitemukan':
-        return c.json({ pesan: PESAN_PEMESANAN_TIDAK_DITEMUKAN }, 404)
-      case 'bukanPemesan':
-        return c.json({ pesan: PESAN_TIDAK_ADA_AKSES }, 403)
+        return c.json({ pesan: PESAN_KODE_TIDAK_DITEMUKAN }, 404)
       case 'tidakBisa':
-        return c.json({ pesan: hasil.pesan }, 409)
+        return c.json({ pesan: PESAN_TIDAK_DAPAT_DIBATALKAN }, 409)
     }
   })
 

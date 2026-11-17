@@ -1,3 +1,5 @@
+import { punyaPeran, type Peran } from '../akses/peran.ts'
+import { lengkap, type DataWajibMentah } from './dataWajib.ts'
 import { waktuBerangkatAbsolut, type Penerbangan } from './penerbangan.ts'
 import type { HasilPencarian } from './pencarian.ts'
 
@@ -12,6 +14,10 @@ export const LABEL_STATUS_BOOKING: Record<StatusBooking, string> = {
   Cancelled: 'Cancelled',
 }
 
+/** Status awal Pemesanan baru (US-2a langkah 8) dan status akhir pembatalan (C3); dipakai boundary sebagai parameter SQL. */
+export const STATUS_AWAL_BOOKING: StatusBooking = 'WaitingForThePayment'
+export const STATUS_DIBATALKAN: StatusBooking = 'Cancelled'
+
 /** Pemicu transisi: dua dari sistem luar (pembayaran, maskapai) dan `batalkan` (kontrak C3 oleh pemesan). */
 export type PemicuBooking = 'pembayaranBerhasil' | 'konfirmasiMaskapai' | 'batalkan'
 
@@ -25,6 +31,11 @@ const TRANSISI: Record<StatusBooking, Partial<Record<PemicuBooking, StatusBookin
 /** Status berikutnya menurut mesin status, atau null bila transisi tidak diizinkan. Guard "belum berangkat" ada di `dapatDibatalkan`. */
 export const transisi = (status: StatusBooking, pemicu: PemicuBooking): StatusBooking | null =>
   TRANSISI[status][pemicu] ?? null
+
+/** Status yang boleh menerima pemicu `batalkan` menurut mesin status (sumber tunggal guard pembatalan, juga untuk SQL). */
+export const STATUS_DAPAT_DIBATALKAN: readonly StatusBooking[] = DAFTAR_STATUS_BOOKING.filter(
+  (s) => transisi(s, 'batalkan') !== null,
+)
 
 /**
  * Pemesanan.dapatDibatalkan (US-2b 2a): belum Cancelled dan waktu berangkatnya masih setelah `sekarang`.
@@ -45,9 +56,10 @@ export interface InformasiPenerbangan extends HasilPencarian {
   tersedia: boolean
 }
 
-export const PESAN_PEMESANAN_TIDAK_DITEMUKAN = 'Pemesanan tidak ditemukan'
-export const PESAN_SUDAH_DIBATALKAN = 'Pemesanan sudah dibatalkan'
-export const PESAN_SUDAH_BERANGKAT = 'Pemesanan tidak dapat dibatalkan karena penerbangan sudah berangkat'
+/** Kode tidak dikenal, termasuk kode milik orang lain (tidak membocorkan kode pemesan lain); wording US-5b/US-9. */
+export const PESAN_KODE_TIDAK_DITEMUKAN = 'Kode booking reference tidak ditemukan'
+/** Kondisi ekstensi 2a US-2b; dipakai juga sebagai alasan penolakan pembatalan di API. */
+export const PESAN_TIDAK_DAPAT_DIBATALKAN = 'Pemesanan berstatus Cancelled atau waktu berangkatnya sudah lewat'
 
 /** Satu pemesanan di "Tiket Saya". */
 export interface TiketSaya {
@@ -61,3 +73,22 @@ export interface TiketSaya {
   penumpang: string[]
   penerbangan: InformasiPenerbangan
 }
+
+/** Bentuk Pemesanan yang diperiksa invarian: Penumpang dengan data wajibnya dan akun yang `mewakili`. */
+export interface PemesananUntukInvarian {
+  pemesanId: number
+  penumpang: { akunId: number | null; data: DataWajibMentah }[]
+}
+
+/** inv DataPenumpangLengkap: self.penumpang->forAll(p | p.data.lengkap). `hariIni` untuk aturan tanggal lahir. */
+export const memenuhiDataPenumpangLengkap = (
+  p: { penumpang: { data: DataWajibMentah }[] },
+  hariIni: string,
+): boolean => p.penumpang.every((x) => lengkap(x.data, hariIni))
+
+/**
+ * inv PesananSendiri: bila pemesan adalah CalonPenumpang (Member juga, generalisasi), pemesanan punya tepat satu
+ * Penumpang yang `mewakili` pemesan itu sendiri.
+ */
+export const memenuhiPesananSendiri = (p: PemesananUntukInvarian, peranPemesan: Peran): boolean =>
+  !punyaPeran(peranPemesan, ['CalonPenumpang']) || (p.penumpang.length === 1 && p.penumpang[0]!.akunId === p.pemesanId)

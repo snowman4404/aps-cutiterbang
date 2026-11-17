@@ -2,7 +2,13 @@ import { expect, test } from '@playwright/test'
 import type { APIRequestContext, Page } from '@playwright/test'
 import {
   hariIniWib,
+  PESAN_DATA_PENUMPANG_TIDAK_LENGKAP,
+  PESAN_EMAIL,
   PESAN_KURSI_HABIS,
+  PESAN_NAMA_LENGKAP,
+  PESAN_NOMOR_IDENTITAS,
+  PESAN_NOMOR_TELEPON,
+  PESAN_TANGGAL_LAHIR,
   PESAN_TIDAK_ADA_AKSES,
   singkatanZona,
   tambahHari,
@@ -106,6 +112,10 @@ test.describe('US-2a Memesan tiket', () => {
     // 5: ringkasan.
     await expect(page.getByRole('heading', { name: 'Ringkasan pemesanan' })).toBeVisible()
     await expect(page.getByTestId('ringkasan-namaLengkap')).toHaveText('Budi Santoso')
+    // Token grid-cols-ringkasan benar-benar menghasilkan dua kolom: label 180px lalu nilai.
+    const kolom = await page.locator('dl').evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' '))
+    expect(kolom).toHaveLength(2)
+    expect(kolom[0]).toBe('180px')
     await expect(page.getByTestId('ringkasan-nomorIdentitas')).toHaveText(penumpangBaru.nomorIdentitas)
     await expect(page.getByText(f.nomorPenerbangan)).toBeVisible()
     await expect(page.getByTestId('berangkat')).toHaveText(`${f.waktuBerangkat} ${zona(asal)}`)
@@ -117,6 +127,9 @@ test.describe('US-2a Memesan tiket', () => {
     await expect(page).toHaveURL(/\/tiket-saya\?baru=[A-Z2-9]{6}$/)
     const baru = page.locator('[data-testid="tiket"][data-baru="true"]')
     await expect(baru).toHaveCount(1)
+    await expect(baru).toHaveAttribute('aria-current', 'true')
+    await expect(page.getByRole('listitem', { name: /^Pemesanan baru [A-Z2-9]{6}$/ })).toHaveCount(1)
+    await expect(page.getByText('Pemesanan berhasil dibuat')).toHaveCount(0) // hasilnya terlihat dari kartu yang disorot
     await expect(baru.getByTestId('status')).toHaveText('Waiting for the payment')
     await expect(baru.getByTestId('kode')).toHaveText(/^[A-Z2-9]{6}$/)
     await expect(baru.getByTestId('penumpang')).toHaveText('Budi Santoso')
@@ -143,14 +156,9 @@ test.describe('US-2a Memesan tiket', () => {
     await page.getByLabel('Email').fill('bukan-email')
     await page.getByRole('button', { name: 'Lanjut' }).click()
 
-    for (const pesan of [
-      'Nama lengkap wajib diisi',
-      'Nomor identitas harus 16 digit',
-      'Tanggal lahir wajib diisi',
-      'Nomor telepon harus 10 sampai 13 digit',
-      'Email harus berbentuk nama@domain',
-    ]) {
-      await expect(page.getByText(pesan)).toBeVisible()
+    await expect(page.getByRole('alert').filter({ hasText: PESAN_DATA_PENUMPANG_TIDAK_LENGKAP })).toBeVisible()
+    for (const pesan of [PESAN_NAMA_LENGKAP, PESAN_NOMOR_IDENTITAS, PESAN_TANGGAL_LAHIR, PESAN_NOMOR_TELEPON, PESAN_EMAIL]) {
+      await expect(page.getByText(pesan, { exact: true })).toBeVisible()
     }
     await expect(page.getByLabel('Nomor identitas')).toHaveAttribute('aria-invalid', 'true')
     await expect(page.getByRole('heading', { name: 'Ringkasan pemesanan' })).toHaveCount(0)
@@ -192,20 +200,56 @@ test.describe('US-2a Memesan tiket', () => {
     await expect(page.getByTestId('tiket')).toHaveCount(2)
   })
 
-  test('penerbangan yang sudah habis dari awal: halaman menampilkan "Kursi sudah habis" tanpa formulir', async ({ page, request }) => {
+  test('penerbangan yang sudah habis dari awal: formulir tetap tampil; "Kursi sudah habis" baru setelah Konfirmasi (7b)', async ({ page, request }) => {
     const d = DEMO.habis
     // Tidak muncul di pencarian; id diambil dari API lewat penerbangan kembar yang masih ada.
     const idKursiTerakhir = await idPenerbangan(request, d.asal, d.tujuan, d.hariKe, DEMO.kursiTerakhir.nomorPenerbangan)
     await masuk(page, 'penumpang@cutiterbang.test')
     await page.goto(`/pesan/${idKursiTerakhir - 1}`) // SJ901 dibuat tepat sebelum BW902 pada seed
     await expect(page.getByText(d.nomorPenerbangan)).toBeVisible()
+    await expect(page.getByRole('alert').filter({ hasText: PESAN_KURSI_HABIS })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Lanjut' })).toBeVisible() // formulir tampil
+
+    await isiDataPenumpang(page)
+    await page.getByRole('button', { name: 'Lanjut' }).click()
+    await expect(page.getByRole('heading', { name: 'Ringkasan pemesanan' })).toBeVisible()
+    await expect(page.getByRole('alert').filter({ hasText: PESAN_KURSI_HABIS })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Konfirmasi pemesanan' }).click()
     await expect(page.getByRole('alert').filter({ hasText: PESAN_KURSI_HABIS })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Lanjut' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Konfirmasi pemesanan' })).toHaveCount(0)
+
+    await page.goto('/tiket-saya')
+    await expect(page.getByTestId('tiket')).toHaveCount(2) // tidak ada pemesanan baru
+  })
+
+  test('tombol Pesan di hasil pencarian: tampil untuk yang belum login dan penumpang; tidak untuk HRD, Manajer Travel, Pengunjung', async ({ page }) => {
+    const { asal, tujuan, hariKe } = DEMO.rutePadat
+    const f = penerbanganSeed(asal, tujuan, hariKe)
+    const tanggal = tambahHari(HARI_INI, hariKe)
+    const pesanLink = () => page.getByRole('link', { name: `Pesan ${f.nomorPenerbangan}` })
+
+    await isiDanCari(page, asal, tujuan, tanggal) // belum login
+    await expect(pesanLink()).toBeVisible()
+
+    for (const email of ['hrd@cutiterbang.test', 'travel@cutiterbang.test', 'pengunjung1@cutiterbang.test']) {
+      await page.context().clearCookies()
+      await masuk(page, email)
+      await isiDanCari(page, asal, tujuan, tanggal)
+      await expect(sisaKursiDiHasil(page, f.nomorPenerbangan)).toBeVisible()
+      await expect(pesanLink(), email).toHaveCount(0)
+    }
+
+    for (const email of ['penumpang@cutiterbang.test', 'member1@cutiterbang.test']) {
+      await page.context().clearCookies()
+      await masuk(page, email)
+      await isiDanCari(page, asal, tujuan, tanggal)
+      await expect(pesanLink(), email).toBeVisible()
+    }
   })
 
   test('penerbangan tidak dikenal: pesan galat, tanpa formulir', async ({ page }) => {
     await masuk(page, 'penumpang@cutiterbang.test')
-    await page.goto('/pesan/999999')
+    await page.goto('/pesan/2000000000')
     await expect(page.getByRole('alert').filter({ hasText: 'Penerbangan tidak ditemukan' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Lanjut' })).toHaveCount(0)
   })
@@ -271,7 +315,6 @@ test.describe('US-2b Membatalkan pemesanan', () => {
     await expect(page.getByRole('dialog')).toBeHidden()
     await expect(k.getByTestId('status')).toHaveText('Cancelled')
     await expect(k.getByRole('button', { name: /Batalkan/ })).toHaveCount(0)
-    await expect(page.getByText('Pemesanan CTB001 dibatalkan')).toBeVisible()
 
     // Tetap Cancelled setelah dimuat ulang, dan kursi kembali di pencarian.
     await page.reload()
@@ -299,7 +342,7 @@ test.describe('US-2b Membatalkan pemesanan', () => {
     await page.getByRole('button', { name: 'Daftar', exact: true }).click()
     await expect(page).not.toHaveURL(/\/daftar/)
     await page.goto('/tiket-saya')
-    await expect(page.getByText('Belum ada pemesanan')).toBeVisible()
+    await expect(page.getByText('Belum ada tiket')).toBeVisible()
   })
 
   test('lebar ponsel: Tiket Saya tanpa gulir ke samping dan dialog muat di layar', async ({ page }) => {
@@ -313,6 +356,7 @@ test.describe('US-2b Membatalkan pemesanan', () => {
     const kotak = await page.getByRole('dialog').boundingBox()
     expect(kotak!.x).toBeGreaterThanOrEqual(0)
     expect(kotak!.x + kotak!.width).toBeLessThanOrEqual(375)
+    expect(kotak!.width).toBeCloseTo(375 - 32, 0) // max-w-dialog menyisakan 16px di tiap sisi
     await expect(page.getByRole('button', { name: 'Ya, batalkan' })).toBeVisible()
   })
 })

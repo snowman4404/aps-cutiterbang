@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import {
   hariIniWib,
+  PESAN_DATA_PENUMPANG_TIDAK_LENGKAP,
   PESAN_KURSI_HABIS,
   validasiDataPenumpang,
   type DataWajib,
@@ -14,6 +15,7 @@ import {
 import { useAuth } from '../akses/AuthContext.tsx'
 import { panggil } from '../akses/api.ts'
 import { formatTanggal } from '../lib/tanggal.ts'
+import { useAksi } from '../lib/useAksi.ts'
 import { PESAN_GALAT_UMUM, useMuat } from '../lib/useMuat.ts'
 import { Alert, Button, Card, Field, Input, LinkTombol, PageTitle } from '../ui/index.ts'
 import { InfoPenerbangan } from './InfoPenerbangan.tsx'
@@ -30,6 +32,8 @@ const KOLOM: { nama: KolomDataWajib; label: string; petunjuk?: string; jenis?: s
 
 // US-2a di sisi web (boundary Halaman Pemesanan): formulir data penumpang wajib (langkah 3-4), ringkasan (5),
 // konfirmasi (6), lalu ke Tiket Saya (10). Validasi memakai fungsi domain yang sama dengan API (7, 7a); 7b = 409.
+// Urutan mengikuti spesifikasi: formulir dan ringkasan selalu tampil untuk penerbangan yang dikenal; "Kursi sudah habis"
+// baru muncul setelah konfirmasi.
 export default function HalamanPemesanan() {
   const { idPenerbangan } = useParams()
   const { akun } = useAuth()
@@ -45,8 +49,9 @@ export default function HalamanPemesanan() {
   })
   const [galat, setGalat] = useState<GalatDataWajib>({}) // tandaiKolomSalah (7a)
   const [ringkasan, setRingkasan] = useState<DataWajib | null>(null) // data yang sudah valid, ditampilkan di ringkasan
+  const [tidakLengkap, setTidakLengkap] = useState(false) // 7a: pesan "Data penumpang wajib tidak lengkap"
   const [pesan, setPesan] = useState('') // tampilkanPesan (7b dan galat lain)
-  const [sibuk, setSibuk] = useState(false)
+  const { sibuk, jalankan } = useAksi(setPesan)
 
   const penerbangan = data?.penerbangan
   const ubah = (k: KolomDataWajib, nilai: string) => {
@@ -57,17 +62,21 @@ export default function HalamanPemesanan() {
   function lanjut(e: FormEvent) {
     e.preventDefault()
     const hasil = validasiDataPenumpang(isian, hariIniWib())
-    if ('galat' in hasil) return setGalat(hasil.galat)
+    if ('galat' in hasil) {
+      setGalat(hasil.galat)
+      setTidakLengkap(true)
+      return
+    }
     setGalat({})
+    setTidakLengkap(false)
     setPesan('')
     setRingkasan(hasil.data)
   }
 
-  async function konfirmasi() {
-    if (!ringkasan || !penerbangan) return
-    setSibuk(true)
-    setPesan('')
-    try {
+  const konfirmasi = () =>
+    jalankan(async () => {
+      if (!ringkasan || !penerbangan) return
+      setPesan('')
       const r = await panggil<{ pemesanan?: TiketSaya; galat?: GalatDataWajib; pesan?: string }>('/pemesanan', {
         body: { idPenerbangan: penerbangan.id, dataPenumpang: ringkasan },
       })
@@ -75,21 +84,17 @@ export default function HalamanPemesanan() {
         void navigate(`/tiket-saya?baru=${encodeURIComponent(r.data.pemesanan.kode)}`)
       } else if (r.status === 400 && r.data.galat) {
         setGalat(r.data.galat) // 7a: kembali ke langkah 4 dengan kolom yang salah ditandai
+        setTidakLengkap(true)
         setRingkasan(null)
       } else {
         setPesan(r.data.pesan ?? PESAN_GALAT_UMUM) // 7b: "Kursi sudah habis"; pemesanan tidak dibuat
       }
-    } catch {
-      setPesan(PESAN_GALAT_UMUM)
-    } finally {
-      setSibuk(false)
-    }
-  }
+    })
 
   if (memuat) return <p className="text-muted">Memuat…</p>
   if (!penerbangan) return <Alert varian="negative">{galatMuat}</Alert>
 
-  const kursiHabis = !penerbangan.tersedia || pesan === PESAN_KURSI_HABIS
+  const kursiHabis = pesan === PESAN_KURSI_HABIS // 7b: use case berakhir gagal
 
   return (
     <section className="flex max-w-3xl flex-col gap-6">
@@ -102,7 +107,7 @@ export default function HalamanPemesanan() {
       </Card>
 
       {pesan && <Alert varian="negative">{pesan}</Alert>}
-      {!pesan && !penerbangan.tersedia && <Alert varian="negative">{PESAN_KURSI_HABIS}</Alert>}
+      {tidakLengkap && !kursiHabis && <Alert varian="negative">{PESAN_DATA_PENUMPANG_TIDAK_LENGKAP}</Alert>}
 
       {kursiHabis ? (
         <div>
@@ -113,7 +118,7 @@ export default function HalamanPemesanan() {
       ) : ringkasan ? (
         <Card className="flex flex-col gap-4" aria-label="Ringkasan pemesanan">
           <h2 className="text-lg font-semibold">Ringkasan pemesanan</h2>
-          <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-[180px_1fr]">
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-ringkasan">
             {KOLOM.map((k) => (
               <div key={k.nama} className="contents">
                 <dt className="text-muted">{k.label}</dt>

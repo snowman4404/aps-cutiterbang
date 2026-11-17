@@ -101,11 +101,23 @@
   /* Layar lebar = di atas 1100px; `max-desk:` untuk ponsel dan tablet. */
   --breakpoint-desk: 1101px;
   /* Ukuran form: `max-w-form` (kartu/pilihan 420px), `sm:w-kolom-tanggal` (kolom tanggal 200px),
-     `sm:pt-label-field` (tinggi label + jarak Field, supaya tombol sejajar dengan kontrol), `text-stat` (angka besar). */
+     `sm:pt-label-field` (tinggi label + jarak Field, supaya tombol sejajar dengan kontrol), `text-stat` (angka besar),
+     `max-w-dialog` (lebar Dialog: 420px, menyusut menyisakan 16px di tiap sisi pada ponsel),
+     `sm:grid-cols-ringkasan` (label + nilai, kolom label 180px) dan `desk:grid-cols-cari` (baris formulir pencarian). */
   --container-form: 420px;
+  --container-dialog: min(420px, calc(100vw - 32px));
   --spacing-kolom-tanggal: 200px;
+  --spacing-kolom-label: 180px;
   --spacing-label-field: 22px;
   --text-stat: 32px;
+}
+
+/* Susunan kolom yang dipakai halaman lewat nama, bukan nilai [..px] di halaman. */
+@utility grid-cols-ringkasan {
+  grid-template-columns: var(--spacing-kolom-label) 1fr;
+}
+@utility grid-cols-cari {
+  grid-template-columns: 1fr 1fr var(--spacing-kolom-tanggal) auto;
 }
 
 @layer base {

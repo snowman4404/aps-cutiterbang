@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { normalKode, type TiketSaya } from '@cutiterbang/domain'
+import { samaKode, type TiketSaya } from '@cutiterbang/domain'
 import { panggil } from '../akses/api.ts'
+import { useAksi } from '../lib/useAksi.ts'
 import { PESAN_GALAT_UMUM, useMuat } from '../lib/useMuat.ts'
 import { Alert, Button, Card, Dialog, EmptyState, Kode, LinkTombol, PageTitle, Pill } from '../ui/index.ts'
 import { VARIAN_STATUS_BOOKING } from './format.ts'
@@ -22,52 +23,41 @@ export default function HalamanTiketSaya() {
   }, [data])
 
   const [target, setTarget] = useState<TiketSaya | null>(null) // pemesanan yang sedang dikonfirmasi pembatalannya
-  const [sibuk, setSibuk] = useState(false)
-  const [pesan, setPesan] = useState<{ varian: 'negative' | 'neutral'; teks: string } | null>(null)
+  const [pesan, setPesan] = useState('') // galat pembatalan; keberhasilan terlihat dari status Cancelled pada kartu
+  const { sibuk, jalankan } = useAksi(setPesan)
 
-  async function batalkan() {
-    if (!target) return
-    setSibuk(true)
-    try {
-      const r = await panggil<{ pemesanan?: TiketSaya; pesan?: string }>(`/pemesanan/${encodeURIComponent(target.kode)}/batalkan`, {
-        method: 'POST',
-      })
-      const dibatalkan = r.data.pemesanan
-      if (r.status === 200 && dibatalkan) {
-        setDaftar((d) => d?.map((t) => (t.kode === dibatalkan.kode ? dibatalkan : t)) ?? d)
-        setPesan({ varian: 'neutral', teks: `Pemesanan ${dibatalkan.kode} dibatalkan` })
-      } else {
-        setPesan({ varian: 'negative', teks: r.data.pesan ?? PESAN_GALAT_UMUM })
-        setVersi((v) => v + 1)
+  const batalkan = () =>
+    jalankan(async () => {
+      if (!target) return
+      setPesan('')
+      try {
+        const r = await panggil<{ pemesanan?: TiketSaya; pesan?: string }>(
+          `/pemesanan/${encodeURIComponent(target.kode)}/batalkan`,
+          { method: 'POST' },
+        )
+        const dibatalkan = r.data.pemesanan
+        if (r.status === 200 && dibatalkan) {
+          setDaftar((d) => d?.map((t) => (t.kode === dibatalkan.kode ? dibatalkan : t)) ?? d)
+        } else {
+          setPesan(r.data.pesan ?? PESAN_GALAT_UMUM)
+          setVersi((v) => v + 1)
+        }
+      } finally {
+        setTarget(null)
       }
-    } catch {
-      setPesan({ varian: 'negative', teks: PESAN_GALAT_UMUM })
-    } finally {
-      setSibuk(false)
-      setTarget(null)
-    }
-  }
+    })
 
   return (
     <section className="flex flex-col gap-6">
       <PageTitle finding="Pemesanan Anda, terbaru di atas. Pemesanan yang belum berangkat dapat dibatalkan.">Tiket Saya</PageTitle>
 
-      {baru && daftar?.some((t) => normalKode(t.kode) === normalKode(baru)) && (
-        <Alert varian="neutral" role="status">
-          Pemesanan berhasil dibuat. Kode booking Anda: <Kode>{baru}</Kode>
-        </Alert>
-      )}
-      {pesan && (
-        <Alert varian={pesan.varian} role={pesan.varian === 'negative' ? 'alert' : 'status'}>
-          {pesan.teks}
-        </Alert>
-      )}
+      {pesan && <Alert varian="negative">{pesan}</Alert>}
       {galatMuat && !daftar && <Alert varian="negative">{galatMuat}</Alert>}
 
       {daftar &&
         (daftar.length === 0 ? (
           <EmptyState>
-            <p>Belum ada pemesanan.</p>
+            <p>Belum ada tiket</p>
             <div className="mt-4">
               <LinkTombol to="/penerbangan" varian="secondary">
                 Cari penerbangan
@@ -77,9 +67,16 @@ export default function HalamanTiketSaya() {
         ) : (
           <ul aria-label="Daftar pemesanan" className="flex flex-col gap-3">
             {daftar.map((t) => {
-              const disorot = baru !== null && normalKode(t.kode) === normalKode(baru)
+              const disorot = baru !== null && samaKode(t.kode, baru)
               return (
-                <li key={t.kode} data-testid="tiket" data-kode={t.kode} data-baru={disorot ? 'true' : undefined}>
+                <li
+                  key={t.kode}
+                  data-testid="tiket"
+                  data-kode={t.kode}
+                  data-baru={disorot ? 'true' : undefined}
+                  aria-current={disorot ? 'true' : undefined}
+                  aria-label={disorot ? `Pemesanan baru ${t.kode}` : undefined}
+                >
                   <Card className={`flex flex-col gap-4 ${disorot ? 'outline-2 outline-accent' : ''}`}>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="flex items-center gap-3">
@@ -125,7 +122,7 @@ export default function HalamanTiketSaya() {
           </>
         }
       >
-        Status pemesanan menjadi Cancelled dan kursinya dilepas kembali. Pembatalan tidak dapat diurungkan.
+        Pemesanan ini akan dibatalkan dan tidak dapat diurungkan.
       </Dialog>
     </section>
   )

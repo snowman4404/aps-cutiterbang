@@ -55,12 +55,12 @@ npm workspaces monorepo. Scripts live in the root and each workspace's `package.
 
 ## Conventions
 
-- Use the spec's shared vocabulary (Indonesian class, operation and status names like `Pemesanan`, `alokasiKursi`, `WaitingForThePayment`) in code, UI text and test names. Copy user-facing messages from the spec word for word (e.g. "Anda tidak memiliki akses ke halaman ini", "Kursi sudah habis").
+- Use the spec's shared vocabulary (Indonesian class, operation and status names like `Pemesanan`, `alokasiKursi`, `WaitingForThePayment`) in code, UI text and test names. Copy user-facing messages from the spec word for word (e.g. "Anda tidak memiliki akses ke halaman ini", "Kursi sudah habis"). Where the spec gives no message, reuse its own phrase for that step or condition (e.g. ext 7a "Data penumpang wajib tidak lengkap", the format phrases "Nomor identitas 16 digit") rather than inventing one, and don't add banners for results the page already shows.
 - UI uses the components in `apps/web/src/ui` and the style-A tokens in `apps/web/src/index.css`; `design/mockups/clean.html` is the visual reference.
 - Keep the two modules separate: cuti and tiket never import each other; they share only auth/role checks and module-neutral helpers in `packages/domain/src/umum/` and `apps/web/src/lib/`.
 - Out-of-scope external systems are simulated: Data Kepegawaian and flights come from seed data; payment (→ Booked), airline confirmation (→ Confirmed) and email are mock API endpoints, with sent emails stored so the UI can display them.
 - Business rules belong in the API (backed by `packages/domain`); the web app shows what the API returns and may validate too, for faster feedback.
-- Open gaps G5, G7, G8, G9, G10, G11 and G12 (spec §3, "Celah") are the user's decisions. Ask the user when a task depends on one.
+- Gaps (spec §3, "Celah") are the user's decisions; `docs/roadmap.md` records the decided ones (G1, G5, G8 to G12). G7 is still open: ask the user when a task depends on it.
 
 ## Environment gotchas
 

@@ -9,21 +9,26 @@ import {
   HURUF_KODE_BOOKING,
   lengkap,
   normalKode,
-  PESAN_EMAIL_FORMAT,
-  PESAN_IDENTITAS_FORMAT,
+  memenuhiDataPenumpangLengkap,
+  memenuhiPesananSendiri,
+  PESAN_DATA_PENUMPANG_TIDAK_LENGKAP,
+  PESAN_EMAIL,
+  PESAN_KODE_TIDAK_DITEMUKAN,
   PESAN_KURSI_HABIS,
-  PESAN_NAMA_TERLALU_PANJANG,
-  PESAN_NAMA_WAJIB,
-  PESAN_TANGGAL_LAHIR_FORMAT,
-  PESAN_TANGGAL_LAHIR_LAMPAU,
-  PESAN_TELEPON_FORMAT,
+  PESAN_NAMA_LENGKAP,
+  PESAN_NOMOR_IDENTITAS,
+  PESAN_NOMOR_TELEPON,
+  PESAN_TANGGAL_LAHIR,
+  PESAN_TIDAK_DAPAT_DIBATALKAN,
   samaKode,
+  STATUS_DAPAT_DIBATALKAN,
   transisi,
   validasiDataPenumpang,
   waktuBerangkatAbsolut,
   type DataWajibMentah,
   type Kota,
   type PemicuBooking,
+  type Peran,
   type StatusBooking,
 } from '../index.ts'
 
@@ -146,42 +151,42 @@ describe('DataWajib', () => {
   })
 
   test('nilai bukan string dan hanya spasi dianggap kosong', () => {
-    expect(galat({ namaLengkap: '   ' }).namaLengkap).toBe(PESAN_NAMA_WAJIB)
-    expect(galat({ namaLengkap: 42 }).namaLengkap).toBe(PESAN_NAMA_WAJIB)
+    expect(galat({ namaLengkap: '   ' }).namaLengkap).toBe(PESAN_NAMA_LENGKAP)
+    expect(galat({ namaLengkap: 42 }).namaLengkap).toBe(PESAN_NAMA_LENGKAP)
   })
 
   test('nama: 100 karakter boleh, 101 ditolak', () => {
     expect(galat({ namaLengkap: 'a'.repeat(100) })).toEqual({})
-    expect(galat({ namaLengkap: 'a'.repeat(101) })).toEqual({ namaLengkap: PESAN_NAMA_TERLALU_PANJANG })
+    expect(galat({ namaLengkap: 'a'.repeat(101) })).toEqual({ namaLengkap: PESAN_NAMA_LENGKAP })
     expect(galat({ namaLengkap: 'A' })).toEqual({})
   })
 
   test('nomor identitas: 15 dan 17 digit ditolak, 16 boleh, bukan digit ditolak', () => {
-    expect(galat({ nomorIdentitas: '1'.repeat(15) })).toEqual({ nomorIdentitas: PESAN_IDENTITAS_FORMAT })
+    expect(galat({ nomorIdentitas: '1'.repeat(15) })).toEqual({ nomorIdentitas: PESAN_NOMOR_IDENTITAS })
     expect(galat({ nomorIdentitas: '1'.repeat(16) })).toEqual({})
-    expect(galat({ nomorIdentitas: '1'.repeat(17) })).toEqual({ nomorIdentitas: PESAN_IDENTITAS_FORMAT })
-    expect(galat({ nomorIdentitas: '123456789012345a' })).toEqual({ nomorIdentitas: PESAN_IDENTITAS_FORMAT })
+    expect(galat({ nomorIdentitas: '1'.repeat(17) })).toEqual({ nomorIdentitas: PESAN_NOMOR_IDENTITAS })
+    expect(galat({ nomorIdentitas: '123456789012345a' })).toEqual({ nomorIdentitas: PESAN_NOMOR_IDENTITAS })
   })
 
   test('nomor telepon: 9 dan 14 digit ditolak, 10 dan 13 boleh, huruf ditolak', () => {
-    expect(galat({ nomorTelepon: '1'.repeat(9) })).toEqual({ nomorTelepon: PESAN_TELEPON_FORMAT })
+    expect(galat({ nomorTelepon: '1'.repeat(9) })).toEqual({ nomorTelepon: PESAN_NOMOR_TELEPON })
     expect(galat({ nomorTelepon: '1'.repeat(10) })).toEqual({})
     expect(galat({ nomorTelepon: '1'.repeat(13) })).toEqual({})
-    expect(galat({ nomorTelepon: '1'.repeat(14) })).toEqual({ nomorTelepon: PESAN_TELEPON_FORMAT })
-    expect(galat({ nomorTelepon: '+6281234567890' })).toEqual({ nomorTelepon: PESAN_TELEPON_FORMAT })
+    expect(galat({ nomorTelepon: '1'.repeat(14) })).toEqual({ nomorTelepon: PESAN_NOMOR_TELEPON })
+    expect(galat({ nomorTelepon: '+6281234567890' })).toEqual({ nomorTelepon: PESAN_NOMOR_TELEPON })
   })
 
   test('tanggal lahir: kemarin boleh, hari ini dan besok ditolak, format salah ditolak', () => {
     expect(galat({ tanggalLahir: '2026-11-16' })).toEqual({})
-    expect(galat({ tanggalLahir: HARI_INI })).toEqual({ tanggalLahir: PESAN_TANGGAL_LAHIR_LAMPAU })
-    expect(galat({ tanggalLahir: '2026-11-18' })).toEqual({ tanggalLahir: PESAN_TANGGAL_LAHIR_LAMPAU })
-    expect(galat({ tanggalLahir: '1990-02-30' })).toEqual({ tanggalLahir: PESAN_TANGGAL_LAHIR_FORMAT })
-    expect(galat({ tanggalLahir: '01/01/1990' })).toEqual({ tanggalLahir: PESAN_TANGGAL_LAHIR_FORMAT })
+    expect(galat({ tanggalLahir: HARI_INI })).toEqual({ tanggalLahir: PESAN_TANGGAL_LAHIR })
+    expect(galat({ tanggalLahir: '2026-11-18' })).toEqual({ tanggalLahir: PESAN_TANGGAL_LAHIR })
+    expect(galat({ tanggalLahir: '1990-02-30' })).toEqual({ tanggalLahir: PESAN_TANGGAL_LAHIR })
+    expect(galat({ tanggalLahir: '01/01/1990' })).toEqual({ tanggalLahir: PESAN_TANGGAL_LAHIR })
   })
 
   test('email: harus nama@domain', () => {
     for (const salah of ['budi', 'budi@', '@contoh.com', 'a@b@c.com']) {
-      expect(galat({ email: salah })).toEqual({ email: PESAN_EMAIL_FORMAT })
+      expect(galat({ email: salah })).toEqual({ email: PESAN_EMAIL })
     }
     expect(galat({ email: 'a@b' })).toEqual({})
   })
@@ -190,5 +195,56 @@ describe('DataWajib', () => {
     expect(formatValid({ namaLengkap: 'Budi', nomorIdentitas: '123' }, HARI_INI)).toBe(false)
     expect(formatValid({ namaLengkap: 'Budi' }, HARI_INI)).toBe(true)
     expect(lengkap({ namaLengkap: 'Budi' }, HARI_INI)).toBe(false)
+  })
+})
+
+describe('pesan pengguna (kata per kata dari spesifikasi)', () => {
+  test('format data penumpang US-2a, ekstensi 7a, 4a/US-9 dan ekstensi 2a US-2b', () => {
+    expect(PESAN_NAMA_LENGKAP).toBe('Nama lengkap 1 sampai 100 karakter')
+    expect(PESAN_NOMOR_IDENTITAS).toBe('Nomor identitas 16 digit')
+    expect(PESAN_TANGGAL_LAHIR).toBe('Tanggal lahir sebelum hari ini')
+    expect(PESAN_NOMOR_TELEPON).toBe('Nomor telepon 10 sampai 13 digit')
+    expect(PESAN_EMAIL).toBe('Email berbentuk nama@domain')
+    expect(PESAN_DATA_PENUMPANG_TIDAK_LENGKAP).toBe('Data penumpang wajib tidak lengkap')
+    expect(PESAN_KODE_TIDAK_DITEMUKAN).toBe('Kode booking reference tidak ditemukan')
+    expect(PESAN_TIDAK_DAPAT_DIBATALKAN).toBe('Pemesanan berstatus Cancelled atau waktu berangkatnya sudah lewat')
+  })
+
+  test('STATUS_DAPAT_DIBATALKAN diturunkan dari mesin status: semua kecuali Cancelled', () => {
+    expect([...STATUS_DAPAT_DIBATALKAN]).toEqual(['WaitingForThePayment', 'Booked', 'Confirmed'])
+  })
+})
+
+describe('inv DataPenumpangLengkap dan PesananSendiri', () => {
+  const HARI_INI = '2026-11-17'
+  const data: DataWajibMentah = {
+    namaLengkap: 'Budi Santoso',
+    nomorIdentitas: '3174010101900001',
+    tanggalLahir: '1990-01-01',
+    nomorTelepon: '081234567890',
+    email: 'budi@contoh.com',
+  }
+
+  test('DataPenumpangLengkap: semua penumpang lengkap; satu kolom kosong atau salah format melanggar', () => {
+    expect(memenuhiDataPenumpangLengkap({ penumpang: [{ data }] }, HARI_INI)).toBe(true)
+    expect(memenuhiDataPenumpangLengkap({ penumpang: [] }, HARI_INI)).toBe(true) // forAll pada himpunan kosong
+    expect(memenuhiDataPenumpangLengkap({ penumpang: [{ data }, { data: { ...data, email: '' } }] }, HARI_INI)).toBe(false)
+    expect(memenuhiDataPenumpangLengkap({ penumpang: [{ data: { ...data, nomorIdentitas: '123' } }] }, HARI_INI)).toBe(false)
+  })
+
+  test('PesananSendiri: CalonPenumpang dan Member harus tepat satu penumpang yang mewakili dirinya', () => {
+    for (const peran of ['CalonPenumpang', 'MemberFrequentTraveller'] as Peran[]) {
+      expect(memenuhiPesananSendiri({ pemesanId: 7, penumpang: [{ akunId: 7, data }] }, peran)).toBe(true)
+      expect(memenuhiPesananSendiri({ pemesanId: 7, penumpang: [{ akunId: 8, data }] }, peran)).toBe(false) // mewakili orang lain
+      expect(memenuhiPesananSendiri({ pemesanId: 7, penumpang: [] }, peran)).toBe(false)
+      expect(
+        memenuhiPesananSendiri({ pemesanId: 7, penumpang: [{ akunId: 7, data }, { akunId: 7, data }] }, peran),
+      ).toBe(false)
+    }
+  })
+
+  test('PesananSendiri: implikasi tidak berlaku untuk pemesan selain CalonPenumpang (mis. ManajerTravel)', () => {
+    expect(memenuhiPesananSendiri({ pemesanId: 7, penumpang: [{ akunId: 9, data }, { akunId: 10, data }] }, 'ManajerTravel')).toBe(true)
+    expect(memenuhiPesananSendiri({ pemesanId: 7, penumpang: [] }, 'HRDManajer')).toBe(true)
   })
 })

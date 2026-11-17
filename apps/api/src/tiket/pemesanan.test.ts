@@ -1,13 +1,21 @@
 import { and, count, eq, sql } from 'drizzle-orm'
 import { beforeEach, describe, expect, test } from 'vitest'
 import {
+  bolehAlokasi,
+  memenuhiDataPenumpangLengkap,
+  memenuhiPesananSendiri,
   normalKode,
+  PESAN_DATA_PENUMPANG_TIDAK_LENGKAP,
+  PESAN_EMAIL,
+  PESAN_KODE_TIDAK_DITEMUKAN,
   PESAN_KURSI_HABIS,
-  PESAN_PEMESANAN_TIDAK_DITEMUKAN,
+  PESAN_NAMA_LENGKAP,
+  PESAN_NOMOR_IDENTITAS,
+  PESAN_NOMOR_TELEPON,
   PESAN_PENERBANGAN_TIDAK_DITEMUKAN,
-  PESAN_SUDAH_BERANGKAT,
-  PESAN_SUDAH_DIBATALKAN,
+  PESAN_TANGGAL_LAHIR,
   PESAN_TIDAK_ADA_AKSES,
+  PESAN_TIDAK_DAPAT_DIBATALKAN,
   tambahHari,
   type InformasiPenerbangan,
   type StatusBooking,
@@ -23,7 +31,7 @@ import { akun, alokasiKursi, pemesanan, penerbangan, penumpang } from '../db/sch
 import { seed, SANDI_DEMO } from '../db/seed.ts'
 import { antarmukaKatalogPenerbangan } from './antarmukaKatalogPenerbangan.ts'
 import { adalahKodeBentrok, antarmukaPemesanan } from './antarmukaPemesanan.ts'
-import { buatPengendaliPemesanan } from './pengendaliPemesanan.ts'
+import { buatPengendaliPemesanan, GALAT_KODE_TIDAK_UNIK } from './pengendaliPemesanan.ts'
 
 const HARI_INI = '2026-11-17'
 const SEKARANG = new Date('2026-11-17T01:00:00Z') // 08:00 WIB
@@ -78,6 +86,15 @@ const cari = async (asal: string, tujuan: string, tanggal: string) => {
 const idPenerbanganNomor = async (nomor: string, tanggal: string) =>
   (await db.select({ id: penerbangan.id }).from(penerbangan).where(and(eq(penerbangan.nomorPenerbangan, nomor), eq(penerbangan.tanggalKeberangkatan, tanggal))))[0]!.id
 const jumlahAlokasi = async () => (await db.select({ n: count() }).from(alokasiKursi))[0]!.n
+
+/** Argumen alokasiKursi untuk pemesanan baru (data penumpang sembarang yang sah). */
+const baru = (kode: string, penerbanganId: number, pemesanId = 1) => ({
+  kode,
+  penerbanganId,
+  pemesanId,
+  waktuDibuat: SEKARANG,
+  data: { namaLengkap: 'X', nomorIdentitas: '1'.repeat(16), tanggalLahir: '1990-01-01', nomorTelepon: '1'.repeat(10), email: 'x@y' },
+})
 
 const TANGGAL_DEMO = tambahHari(HARI_INI, DEMO.kursiTerakhir.hariKe)
 const idKursiTerakhir = () => idPenerbanganNomor(DEMO.kursiTerakhir.nomorPenerbangan, TANGGAL_DEMO)
@@ -197,13 +214,17 @@ describe('POST /api/pemesanan (US-2a, C1)', () => {
     const f = await idPadat()
     const kosong = await pesan(cookie, f.id, {})
     expect(kosong.status).toBe(400)
-    expect(Object.keys(((await kosong.json()) as { galat: object }).galat).sort()).toEqual([
-      'email',
-      'namaLengkap',
-      'nomorIdentitas',
-      'nomorTelepon',
-      'tanggalLahir',
-    ])
+    const galatKosong = ((await kosong.json()) as { galat: Record<string, string> }).galat
+    expect(Object.keys(galatKosong).sort()).toEqual(['email', 'namaLengkap', 'nomorIdentitas', 'nomorTelepon', 'tanggalLahir'])
+    // Pesan = frasa format spesifikasi, sama untuk kolom kosong dan salah format.
+    expect(galatKosong).toEqual({
+      namaLengkap: PESAN_NAMA_LENGKAP,
+      nomorIdentitas: PESAN_NOMOR_IDENTITAS,
+      tanggalLahir: PESAN_TANGGAL_LAHIR,
+      nomorTelepon: PESAN_NOMOR_TELEPON,
+      email: PESAN_EMAIL,
+    })
+    expect(PESAN_DATA_PENUMPANG_TIDAK_LENGKAP).toBe('Data penumpang wajib tidak lengkap')
 
     const salah: Record<string, unknown> = {
       namaLengkap: 'a'.repeat(101),
@@ -317,7 +338,7 @@ describe('GET /api/pemesanan/saya', () => {
     const t = saya.find((x) => x.kode === 'CTB003')!
     expect(t).toBeDefined()
     expect(t.dapatDibatalkan).toBe(false)
-    expect((await batalkan(await masuk('member2@cutiterbang.test'), 'CTB003')).status).toBe(403)
+    expect((await batalkan(await masuk('member2@cutiterbang.test'), 'CTB003')).status).toBe(404) // bukan pemesan
   })
 })
 
@@ -357,25 +378,25 @@ describe('POST /api/pemesanan/:kode/batalkan (US-2b, C3)', () => {
     expect(((await res.json()) as { pemesanan: TiketSaya }).pemesanan.kode).toBe('CTB001')
   })
 
-  test('dua kali: 409 "Pemesanan sudah dibatalkan"; pemesanan seed yang Cancelled juga 409', async () => {
+  test('dua kali: 409 dengan pesan ekstensi 2a; pemesanan seed yang Cancelled juga 409', async () => {
     const cookie = await masuk('penumpang@cutiterbang.test')
     expect((await batalkan(cookie, 'CTB001')).status).toBe(200)
     const lagi = await batalkan(cookie, 'CTB001')
     expect(lagi.status).toBe(409)
-    expect(await lagi.json()).toEqual({ pesan: PESAN_SUDAH_DIBATALKAN })
+    expect(await lagi.json()).toEqual({ pesan: PESAN_TIDAK_DAPAT_DIBATALKAN })
     expect((await batalkan(cookie, 'CTB002')).status).toBe(409)
     expect(await jumlahAlokasi()).toBe(2)
   })
 
-  test('kode tidak dikenal: 404; milik orang lain: 403 tanpa mengubah apa pun', async () => {
+  test('kode tidak dikenal dan milik orang lain: sama-sama 404 "Kode booking reference tidak ditemukan", tanpa mengubah apa pun', async () => {
     const cookie = await masuk('penumpang@cutiterbang.test')
     const tidakAda = await batalkan(cookie, 'ZZZZZZ')
     expect(tidakAda.status).toBe(404)
-    expect(await tidakAda.json()).toEqual({ pesan: PESAN_PEMESANAN_TIDAK_DITEMUKAN })
+    expect(await tidakAda.json()).toEqual({ pesan: PESAN_KODE_TIDAK_DITEMUKAN })
 
-    const orangLain = await batalkan(cookie, 'CTB003') // pemesan: member1
-    expect(orangLain.status).toBe(403)
-    expect(await orangLain.json()).toEqual({ pesan: PESAN_TIDAK_ADA_AKSES })
+    const orangLain = await batalkan(cookie, 'CTB003') // pemesan: member1; jawabannya tidak membedakan dari kode yang tidak ada
+    expect(orangLain.status).toBe(404)
+    expect(await orangLain.json()).toEqual({ pesan: PESAN_KODE_TIDAK_DITEMUKAN })
     const [b] = await db.select().from(pemesanan).where(eq(pemesanan.kode, 'CTB003'))
     expect(b!.status).toBe('Booked')
   })
@@ -392,7 +413,7 @@ describe('POST /api/pemesanan/:kode/batalkan (US-2b, C3)', () => {
     expect(saya.find((t) => t.kode === 'LAMPAU')!.dapatDibatalkan).toBe(false) // 2a: aksi disembunyikan
     const res = await batalkan(cookie, 'LAMPAU')
     expect(res.status).toBe(409)
-    expect(await res.json()).toEqual({ pesan: PESAN_SUDAH_BERANGKAT })
+    expect(await res.json()).toEqual({ pesan: PESAN_TIDAK_DAPAT_DIBATALKAN })
     expect((await db.select().from(pemesanan).where(eq(pemesanan.kode, 'LAMPAU')))[0]!.status).toBe('Booked')
   })
 
@@ -417,14 +438,6 @@ describe('POST /api/pemesanan/:kode/batalkan (US-2b, C3)', () => {
 })
 
 describe('KodeUnik dan atomisitas (basis data)', () => {
-  const baru = (kode: string, penerbanganId: number, pemesanId = 1) => ({
-    kode,
-    penerbanganId,
-    pemesanId,
-    waktuDibuat: SEKARANG,
-    data: { namaLengkap: 'X', nomorIdentitas: '1'.repeat(16), tanggalLahir: '1990-01-01', nomorTelepon: '1'.repeat(10), email: 'x@y' },
-  })
-
   test('kode normal ganda ditolak oleh constraint UNIQUE pada pemesanan dan alokasi_kursi', async () => {
     const [{ id: pemesanId }] = await db.select({ id: akun.id }).from(akun).limit(1)
     const f = await idPadat()
@@ -466,19 +479,193 @@ describe('KodeUnik dan atomisitas (basis data)', () => {
     expect((await info(b)).sisaKursi).toBe(1)
   })
 
-  test('buatKodeUnik melewati kode yang sudah dipakai dan konfirmasi mengulang bila bentrok', async () => {
+  test('buatKodeUnik: null untuk kode yang sudah dipakai; konfirmasi mengulang dan memakai kode bebas berikutnya', async () => {
     const katalog = antarmukaKatalogPenerbangan(db)
     const data = antarmukaPemesanan(db)
-    // Deret tetap: kode pertama (AAAAAA) bentrok, yang kedua (SSSSSS) bebas.
+    // Deret tetap: kode pertama (AAAAAA) sudah dipakai, yang kedua (SSSSSS) bebas.
     const deret = [0, 0, 0, 0, 0, 0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
     let i = 0
     const [{ id: pemesanId }] = await db.select({ id: akun.id }).from(akun).limit(1)
     const f = await idPadat()
     expect(await data.alokasiKursi(baru('AAAAAA', f.id, pemesanId), 1)).toBe('diterima')
     const pengendali = buatPengendaliPemesanan(katalog, data, () => HARI_INI, () => SEKARANG, () => deret[i++ % deret.length]!)
-    const kode = await pengendali.buatKodeUnik()
-    expect(kode).not.toBe('AAAAAA')
-    expect(kode).toBe('SSSSSS') // 0.5 * 32 = indeks 16 pada himpunan huruf kode
+    expect(await pengendali.buatKodeUnik()).toBeNull()
+    expect(await pengendali.buatKodeUnik()).toBe('SSSSSS') // 0.5 * 32 = indeks 16 pada himpunan huruf kode
+
+    const [pemesan] = await db.select().from(akun).where(eq(akun.email, 'penumpang@cutiterbang.test'))
+    const hasil = await pengendali.konfirmasi(pemesan!, f.id, DATA) // deret berlanjut: AAAAAA (dipakai) lalu SSSSSS
+    expect(hasil).toMatchObject({ hasil: 'berhasil', pemesanan: { kode: 'SSSSSS' } })
+  })
+
+  test('konfirmasi menyerah dengan satu galat bila setiap percobaan kode bentrok', async () => {
+    const katalog = antarmukaKatalogPenerbangan(db)
+    const data = antarmukaPemesanan(db)
+    const [{ id: pemesanId }] = await db.select({ id: akun.id }).from(akun).limit(1)
+    const f = await idPadat()
+    expect(await data.alokasiKursi(baru('AAAAAA', f.id, pemesanId), 1)).toBe('diterima')
+    const pengendali = buatPengendaliPemesanan(katalog, data, () => HARI_INI, () => SEKARANG, () => 0) // selalu AAAAAA
+    const [pemesan] = await db.select().from(akun).where(eq(akun.email, 'penumpang@cutiterbang.test'))
+    await expect(pengendali.konfirmasi(pemesan!, f.id, DATA)).rejects.toThrow(GALAT_KODE_TIDAK_UNIK)
+    expect(await jumlahAlokasi()).toBe(4) // 3 seed + AAAAAA; tidak ada yang tertinggal
+  })
+})
+
+describe('AlokasiKursi di SQL = aturan domain bolehAlokasi', () => {
+  const terpakaiDi = async (id: number) =>
+    Number((await db.select({ n: sql<number>`coalesce(sum(${alokasiKursi.jumlah}), 0)` }).from(alokasiKursi).where(eq(alokasiKursi.penerbanganId, id)))[0]!.n)
+  const jumlahKursiDi = async (id: number) => (await db.select({ n: penerbangan.jumlahKursi }).from(penerbangan).where(eq(penerbangan.id, id)))[0]!.n
+  const pemesanAwal = async () => (await db.select({ id: akun.id }).from(akun).limit(1))[0]!.id
+
+  test('untuk penerbangan kosong, sebagian terisi dan penuh, alokasiKursi menerima tepat bila bolehAlokasi menerima', async () => {
+    const data = antarmukaPemesanan(db)
+    const pemesanId = await pemesanAwal()
+    // Kapasitas 5, jumlah beragam (termasuk 0 dan lebih dari sisa): kosong -> sebagian -> penuh -> tetap ditolak.
+    const id = (await idPadat()).id
+    await db.update(penerbangan).set({ jumlahKursi: 5 }).where(eq(penerbangan.id, id))
+    await db.delete(alokasiKursi).where(eq(alokasiKursi.penerbanganId, id))
+    const urutan = [6, 2, 2, 2, 1, 1, 0, 1, 3, 1]
+    const hasil: string[] = []
+    for (const [i, jumlah] of urutan.entries()) {
+      const diharapkan = bolehAlokasi(await jumlahKursiDi(id), await terpakaiDi(id), jumlah)
+      const nyata = await data.alokasiKursi(baru(`KODE${i}`, id, pemesanId), jumlah)
+      expect(nyata, `jumlah ${jumlah} pada langkah ${i}`).toBe(diharapkan ? 'diterima' : 'ditolak')
+      hasil.push(nyata)
+    }
+    expect(hasil).toEqual(['ditolak', 'diterima', 'diterima', 'ditolak', 'diterima', 'ditolak', 'ditolak', 'ditolak', 'ditolak', 'ditolak'])
+    expect(await terpakaiDi(id)).toBe(5)
+  })
+
+  test('penerbangan satu kursi: kosong menerima 1 dan menolak 2; penuh menolak semuanya', async () => {
+    const data = antarmukaPemesanan(db)
+    const pemesanId = await pemesanAwal()
+    const id = await idKursiTerakhir()
+    expect(await data.alokasiKursi(baru('SATU22', id, pemesanId), 2)).toBe('ditolak') // 1 - (0 + 2) < 0
+    expect(await data.alokasiKursi(baru('SATU33', id, pemesanId), 1)).toBe('diterima')
+    for (const [i, jumlah] of [1, 2, 0].entries()) {
+      expect(await data.alokasiKursi(baru(`PENUH${i}`, id, pemesanId), jumlah)).toBe('ditolak')
+    }
+  })
+
+  test('konfirmasi menolak penerbangan penuh lewat aturan domain tanpa menulis apa pun', async () => {
+    const id = await idPenerbanganNomor(DEMO.habis.nomorPenerbangan, TANGGAL_DEMO) // 1 kursi, terpakai 1
+    const res = await pesan(await masuk('penumpang@cutiterbang.test'), id)
+    expect(res.status).toBe(409)
+    expect(await jumlahAlokasi()).toBe(3)
+  })
+})
+
+describe('invarian Pemesanan dan hitungan kursi', () => {
+  const muatPemesanan = async () => {
+    const [semua, penumpangSemua, akunSemua] = await Promise.all([
+      db.select().from(pemesanan),
+      db.select().from(penumpang),
+      db.select().from(akun),
+    ])
+    return semua.map((b) => ({
+      kode: b.kode,
+      pemesanId: b.pemesanId,
+      peran: akunSemua.find((a) => a.id === b.pemesanId)!.peran,
+      penumpang: penumpangSemua.filter((p) => p.pemesananId === b.id).map((p) => ({ akunId: p.akunId, data: p })),
+    }))
+  }
+  const pelanggaran = async () => {
+    const hasil: string[] = []
+    for (const b of await muatPemesanan()) {
+      if (!memenuhiDataPenumpangLengkap(b, HARI_INI)) hasil.push(`${b.kode}: DataPenumpangLengkap`)
+      if (!memenuhiPesananSendiri(b, b.peran)) hasil.push(`${b.kode}: PesananSendiri`)
+    }
+    return hasil
+  }
+
+  test('seed: DataPenumpangLengkap dan PesananSendiri berlaku pada semua Pemesanan', async () => {
+    expect((await muatPemesanan()).length).toBe(4)
+    expect(await pelanggaran()).toEqual([])
+  })
+
+  test('setelah memesan sebagai penumpang dan sebagai member: kedua invarian tetap berlaku', async () => {
+    const f = await idPadat()
+    expect((await pesan(await masuk('penumpang@cutiterbang.test'), f.id)).status).toBe(201)
+    expect((await pesan(await masuk('member2@cutiterbang.test'), f.id, { ...DATA, namaLengkap: 'Andi Pratama' })).status).toBe(201)
+    const semua = await muatPemesanan()
+    expect(semua).toHaveLength(6)
+    expect(semua.filter((b) => b.peran === 'MemberFrequentTraveller').length).toBeGreaterThanOrEqual(3)
+    expect(await pelanggaran()).toEqual([])
+  })
+
+  test('pelanggaran terdeteksi: penumpang yang mewakili orang lain melanggar PesananSendiri', async () => {
+    const [b] = await db.select().from(pemesanan).where(eq(pemesanan.kode, 'CTB001'))
+    const [lain] = await db.select({ id: akun.id }).from(akun).where(eq(akun.email, 'member2@cutiterbang.test'))
+    await db.update(penumpang).set({ akunId: lain!.id }).where(eq(penumpang.pemesananId, b!.id))
+    expect(await pelanggaran()).toEqual(['CTB001: PesananSendiri'])
+  })
+
+  const cocokkanKursi = async () => {
+    const baris = (await db.all(sql`
+      SELECT f.id AS id,
+        COALESCE((SELECT SUM(a.jumlah) FROM alokasi_kursi a WHERE a.penerbangan_id = f.id), 0) AS alokasi,
+        (SELECT COUNT(*) FROM penumpang n JOIN pemesanan m ON m.id = n.pemesanan_id
+           WHERE m.penerbangan_id = f.id AND m.status <> 'Cancelled') AS penumpang
+      FROM penerbangan f`)) as { id: number; alokasi: number; penumpang: number }[]
+    return {
+      selisih: baris.filter((x) => Number(x.alokasi) !== Number(x.penumpang)).map((x) => x.id),
+      total: baris.reduce((n, x) => n + Number(x.alokasi), 0),
+    }
+  }
+
+  test('seed: SUM(alokasi_kursi) = penumpang pada Pemesanan non-Cancelled; CTB002 (Cancelled) tanpa alokasi', async () => {
+    const { selisih, total } = await cocokkanKursi()
+    expect(selisih).toEqual([])
+    expect(total).toBe(3)
+    expect(await db.select().from(alokasiKursi).where(eq(alokasiKursi.kodeNormal, 'ctb002'))).toHaveLength(0)
+    for (const kode of ['ctb001', 'ctb003', 'ctb004']) {
+      expect(await db.select().from(alokasiKursi).where(eq(alokasiKursi.kodeNormal, kode))).toHaveLength(1)
+    }
+  })
+
+  test('setelah pemesanan, pembatalan dan balapan kursi terakhir: hitungan alokasi = hitungan penumpang', async () => {
+    const cookiePenumpang = await masuk('penumpang@cutiterbang.test')
+    const f = await idPadat()
+    const a = (await (await pesan(cookiePenumpang, f.id)).json()) as { pemesanan: TiketSaya }
+    expect((await cocokkanKursi()).selisih).toEqual([])
+    await pesan(await masuk('member2@cutiterbang.test'), f.id)
+    expect((await batalkan(cookiePenumpang, a.pemesanan.kode)).status).toBe(200)
+    expect((await cocokkanKursi()).selisih).toEqual([])
+
+    const id = await idKursiTerakhir()
+    const cookies = [cookiePenumpang, await masuk('member1@cutiterbang.test'), await masuk('member2@cutiterbang.test')]
+    const balapan = await Promise.all(Array.from({ length: 6 }, (_, i) => pesan(cookies[i % 3], id)))
+    expect(balapan.filter((r) => r.status === 201)).toHaveLength(1)
+    expect((await cocokkanKursi()).selisih).toEqual([])
+
+    await batalkan(await masuk('member2@cutiterbang.test'), 'CTB004')
+    await batalkan(cookiePenumpang, 'CTB001')
+    const akhir = await cocokkanKursi()
+    expect(akhir.selisih).toEqual([])
+    expect(akhir.total).toBeGreaterThan(0)
+  })
+})
+
+describe('constraint Penumpang (basis data)', () => {
+  const sisip = async (ubah: Record<string, string | number | null> = {}) => {
+    const [b] = await db.select({ id: pemesanan.id }).from(pemesanan).limit(1)
+    const [a] = await db.select({ id: akun.id }).from(akun).limit(1)
+    const n = { pemesanan_id: b!.id, akun_id: a!.id, nama_lengkap: 'X', nomor_identitas: '1'.repeat(16), tanggal_lahir: '1990-01-01', nomor_telepon: '1'.repeat(10), email: 'x@y', ...ubah }
+    return db.run(
+      sql`INSERT INTO penumpang (pemesanan_id, akun_id, nama_lengkap, nomor_identitas, tanggal_lahir, nomor_telepon, email)
+          VALUES (${n.pemesanan_id}, ${n.akun_id}, ${n.nama_lengkap}, ${n.nomor_identitas}, ${n.tanggal_lahir}, ${n.nomor_telepon}, ${n.email})`,
+    )
+  }
+
+  test('baris sah masuk; akun_id (mewakili) wajib', async () => {
+    await expect(sisip()).resolves.toBeDefined()
+    await expect(sisip({ akun_id: null })).rejects.toThrow()
+  })
+
+  test('kelima kolom DataWajib tidak boleh kosong atau hanya spasi', async () => {
+    for (const kolom of ['nama_lengkap', 'nomor_identitas', 'tanggal_lahir', 'nomor_telepon', 'email']) {
+      await expect(sisip({ [kolom]: '' }), `${kolom} kosong`).rejects.toThrow()
+      await expect(sisip({ [kolom]: '   ' }), `${kolom} spasi`).rejects.toThrow()
+    }
   })
 })
 

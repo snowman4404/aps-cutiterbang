@@ -113,8 +113,10 @@ export const penumpang = sqliteTable(
     pemesananId: integer('pemesanan_id')
       .notNull()
       .references(() => pemesanan.id, { onDelete: 'cascade' }),
-    /** Peran `mewakili`: akun yang diwakili baris penumpang ini (Tiket Saya, US-8c). */
-    akunId: integer('akun_id').references(() => akun.id),
+    /** Peran `mewakili`: akun yang diwakili baris penumpang ini (Tiket Saya, US-8c); C1 dan C2 selalu mengisinya. */
+    akunId: integer('akun_id')
+      .notNull()
+      .references(() => akun.id),
     // Salinan DataWajib saat pemesanan dibuat.
     namaLengkap: text('nama_lengkap').notNull(),
     nomorIdentitas: text('nomor_identitas').notNull(),
@@ -122,7 +124,16 @@ export const penumpang = sqliteTable(
     nomorTelepon: text('nomor_telepon').notNull(),
     email: text('email').notNull(),
   },
-  (t) => [index('penumpang_pemesanan').on(t.pemesananId), index('penumpang_akun').on(t.akunId)],
+  (t) => [
+    index('penumpang_pemesanan').on(t.pemesananId),
+    index('penumpang_akun').on(t.akunId),
+    // Bagian tak bergantung waktu dari inv DataPenumpangLengkap: kelima kolom DataWajib terisi. Format dijaga domain.
+    check('penumpang_nama_terisi', sql`length(trim(${t.namaLengkap})) > 0`),
+    check('penumpang_identitas_terisi', sql`length(trim(${t.nomorIdentitas})) > 0`),
+    check('penumpang_tanggal_lahir_terisi', sql`length(trim(${t.tanggalLahir})) > 0`),
+    check('penumpang_telepon_terisi', sql`length(trim(${t.nomorTelepon})) > 0`),
+    check('penumpang_email_terisi', sql`length(trim(${t.email})) > 0`),
+  ],
 )
 
 // AlokasiKursi: entitas desain di dalam agregat Penerbangan (spec "Batas agregat"). Satu baris per Pemesanan yang

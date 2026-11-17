@@ -2,7 +2,7 @@
 // and demo accounts for each role. Must be idempotent: skips accounts whose email exists.
 import { fileURLToPath } from 'node:url'
 import { and, eq, sql } from 'drizzle-orm'
-import { hariIniWib, normalKode, tahunDari, type Peran } from '@cutiterbang/domain'
+import { hariIniWib, normalKode, STATUS_DIBATALKAN, tahunDari, type Peran } from '@cutiterbang/domain'
 import { hashSandi } from '../akses/sandi.ts'
 import { buatDb, type Db } from './client.ts'
 import { buatDataCuti } from './dataCuti.ts'
@@ -105,7 +105,7 @@ async function seedPemesanan(db: Db, hariIni: string) {
         akunId: pemesanId,
         ...p.penumpang,
       }),
-      ...(p.status === 'Cancelled' ? [] : [db.insert(alokasiKursi).values({ penerbanganId: f.id, kodeNormal, jumlah: 1 })]),
+      ...(p.status === STATUS_DIBATALKAN ? [] : [db.insert(alokasiKursi).values({ penerbanganId: f.id, kodeNormal, jumlah: 1 })]),
     ])
   }
 }

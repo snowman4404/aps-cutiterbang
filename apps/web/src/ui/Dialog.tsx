@@ -34,7 +34,7 @@ export function Dialog({
       ref={ref}
       aria-labelledby={idJudul}
       onClose={onTutup}
-      className="m-auto w-[calc(100%-32px)] max-w-form rounded-card border border-border bg-sheet p-5 text-ink shadow-lg backdrop:bg-black/40"
+      className="m-auto w-full max-w-dialog rounded-card border border-border bg-sheet p-5 text-ink shadow-lg backdrop:bg-black/40"
     >
       <h2 id={idJudul} className="text-lg font-semibold">
         {judul}
