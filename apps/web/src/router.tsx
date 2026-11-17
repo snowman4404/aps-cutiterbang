@@ -6,10 +6,15 @@ import { HanyaUntuk } from './akses/HanyaUntuk.tsx'
 import HalamanDaftarPengajuanCuti from './cuti/HalamanDaftarPengajuanCuti.tsx'
 import HalamanRiwayatCuti from './cuti/HalamanRiwayatCuti.tsx'
 import HalamanSisaCuti from './cuti/HalamanSisaCuti.tsx'
+import HalamanCekKode from './tiket/HalamanCekKode.tsx'
 import HalamanCariPenerbangan from './tiket/HalamanCariPenerbangan.tsx'
+import HalamanCariPengunjung from './tiket/HalamanCariPengunjung.tsx'
 import HalamanMultiDestinasi from './tiket/HalamanMultiDestinasi.tsx'
 import HalamanPemesanan from './tiket/HalamanPemesanan.tsx'
+import HalamanPemesananPengunjung from './tiket/HalamanPemesananPengunjung.tsx'
 import HalamanProfil from './tiket/HalamanProfil.tsx'
+import HalamanStatusBooking from './tiket/HalamanStatusBooking.tsx'
+import HalamanTiketDipesankan from './tiket/HalamanTiketDipesankan.tsx'
 import HalamanTiketSaya from './tiket/HalamanTiketSaya.tsx'
 import HalamanValidasiTiket from './tiket/HalamanValidasiTiket.tsx'
 import Beranda from './halaman/Beranda.tsx'
@@ -27,6 +32,10 @@ const HALAMAN: Record<string, ReactNode> = {
   '/tiket-saya': <HalamanTiketSaya />,
   '/profil': <HalamanProfil />,
   '/validasi-tiket': <HalamanValidasiTiket />,
+  '/travel/cari': <HalamanCariPengunjung />,
+  '/travel/status': <HalamanStatusBooking />,
+  '/travel/cek-kode': <HalamanCekKode />,
+  '/tiket-dipesankan': <HalamanTiketDipesankan />,
 }
 
 export const router = createBrowserRouter([
@@ -42,6 +51,15 @@ export const router = createBrowserRouter([
         element: (
           <HanyaUntuk peran={['CalonPenumpang']}>
             <HalamanPemesanan />
+          </HanyaUntuk>
+        ),
+      },
+      // US-8b: bukan item menu (dibuka dari tombol "Pesan untuk pengunjung" di hasil pencarian US-8a).
+      {
+        path: '/travel/pesan/:idPenerbangan',
+        element: (
+          <HanyaUntuk peran={['ManajerTravel']}>
+            <HalamanPemesananPengunjung />
           </HanyaUntuk>
         ),
       },

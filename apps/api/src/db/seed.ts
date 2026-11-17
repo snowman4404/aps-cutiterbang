@@ -1,7 +1,15 @@
 // Seed data stands in for out-of-scope systems (Data Kepegawaian, flights, cities, airlines)
 // and demo accounts for each role. Must be idempotent: skips accounts whose email exists.
 import { and, eq, sql } from 'drizzle-orm'
-import { AKUN_DEMO, hariIniWib, normalKode, SANDI_DEMO, STATUS_DIBATALKAN, tahunDari } from '@cutiterbang/domain'
+import {
+  AKUN_DEMO,
+  hariIniWib,
+  normalKode,
+  SANDI_DEMO,
+  siapkanETiket,
+  STATUS_DIBATALKAN,
+  tahunDari,
+} from '@cutiterbang/domain'
 import { hashSandi } from '../akses/sandi.ts'
 import { buatDb, type Db } from './client.ts'
 import { dijalankanLangsung } from './cli.ts'
@@ -9,7 +17,7 @@ import { buatDataCuti } from './dataCuti.ts'
 import { buatDataPemesanan } from './dataPemesanan.ts'
 import { PROFIL_DEMO } from './dataProfil.ts'
 import { buatDataPenerbangan } from './dataPenerbangan.ts'
-import { akun, alokasiKursi, etiket, hariLibur, kota, maskapai, pegawai, pemesanan, pengajuanCuti, penerbangan, penumpang, profil } from './schema.ts'
+import { akun, alokasiKursi, emailTerkirim, etiket, hariLibur, kota, maskapai, pegawai, pemesanan, pengajuanCuti, penerbangan, penumpang, profil } from './schema.ts'
 
 // `hariIni` bisa disuntik (tes); tanggal data cuti dihitung dari tahunnya, tanggal penerbangan dari hari ini.
 export async function seed(db: Db, hariIni = hariIniWib()) {
@@ -75,20 +83,37 @@ async function seedProfil(db: Db) {
 
 // Pemesanan demo (lihat dataPemesanan.ts): idempoten per kode normal, jadi pemesanan yang sudah ada (mis. yang
 // sudah dibatalkan pengguna) tidak ditimpa. Tiap pemesanan masuk lewat satu batch bersama Penumpang dan, bila
-// belum Cancelled, AlokasiKursi-nya (sisaKursi berkurang). Pemesanan Confirmed ikut membawa satu ETiket
-// (inv ConfirmedPunyaETiket); simulator konfirmasi maskapai dan email baru di Fase 6.
+// belum Cancelled, AlokasiKursi-nya (sisaKursi berkurang). Pemesanan Confirmed (dan yang Confirmed lalu Cancelled, G5)
+// ikut membawa satu ETiket (inv ConfirmedPunyaETiket); pemesanan Manajer Travel yang punya e-tiket juga membawa
+// email e-tiketnya di kotak keluar, ke email profil tiap pengunjung (penerimaETiket, G6).
 async function seedPemesanan(db: Db, hariIni: string) {
   const sudahAda = new Set((await db.select({ kodeNormal: pemesanan.kodeNormal }).from(pemesanan)).map((baris) => baris.kodeNormal))
   const idAkun = new Map((await db.select({ id: akun.id, email: akun.email }).from(akun)).map((akunBaris) => [akunBaris.email, akunBaris.id]))
+  const kotaMenurutId = new Map((await db.select().from(kota)).map((kotaBaris) => [kotaBaris.id, kotaBaris]))
+  const peranAkun = new Map(AKUN_DEMO.map((a) => [a.email, a.peran]))
   for (const data of buatDataPemesanan(hariIni)) {
     const kodeNormal = normalKode(data.kode)
     if (sudahAda.has(kodeNormal)) continue
-    const [terbang] = await db
-      .select({ id: penerbangan.id })
+    const [baris] = await db
+      .select({ terbang: penerbangan, maskapai: maskapai.nama })
       .from(penerbangan)
+      .innerJoin(maskapai, eq(maskapai.id, penerbangan.maskapaiId))
       .where(and(eq(penerbangan.nomorPenerbangan, data.nomorPenerbangan), eq(penerbangan.tanggalKeberangkatan, data.tanggalKeberangkatan)))
+    const terbang = baris?.terbang
     const pemesanId = idAkun.get(data.akunEmail)
-    if (!terbang || pemesanId === undefined) continue
+    if (!terbang || pemesanId === undefined || data.penumpang.some((orang) => !idAkun.has(orang.akunEmail))) continue
+    const punyaETiket = data.status === 'Confirmed' || data.punyaETiket === true
+    const waktuTerbit = new Date(data.waktuDibuat + 3_600_000)
+    const eTiket = siapkanETiket(
+      data.kode,
+      peranAkun.get(data.akunEmail)!,
+      data.penumpang.map((orang) => ({
+        akunId: idAkun.get(orang.akunEmail)!,
+        namaLengkap: orang.data.namaLengkap,
+        profilEmail: PROFIL_DEMO[orang.akunEmail]?.email ?? null,
+      })),
+      { ...terbang, maskapai: baris.maskapai, asal: kotaMenurutId.get(terbang.asalId)!, tujuan: kotaMenurutId.get(terbang.tujuanId)! },
+    )
     await db.batch([
       db.insert(pemesanan).values({
         kode: data.kode,
@@ -98,21 +123,33 @@ async function seedPemesanan(db: Db, hariIni: string) {
         penerbanganId: terbang.id,
         pemesanId,
       }),
-      db.insert(penumpang).values({
-        pemesananId: sql`(select id from pemesanan where kode_normal = ${kodeNormal})`,
-        akunId: pemesanId,
-        ...data.penumpang,
-      }),
-      ...(data.status === STATUS_DIBATALKAN ? [] : [db.insert(alokasiKursi).values({ penerbanganId: terbang.id, kodeNormal, jumlah: 1 })]),
-      ...(data.status === 'Confirmed'
+      ...data.penumpang.map((orang) =>
+        db.insert(penumpang).values({
+          pemesananId: sql`(select id from pemesanan where kode_normal = ${kodeNormal})`,
+          akunId: idAkun.get(orang.akunEmail)!,
+          ...orang.data,
+        }),
+      ),
+      ...(data.status === STATUS_DIBATALKAN
+        ? []
+        : [db.insert(alokasiKursi).values({ penerbanganId: terbang.id, kodeNormal, jumlah: data.penumpang.length })]),
+      ...(punyaETiket
         ? [
             db.insert(etiket).values({
               pemesananId: sql`(select id from pemesanan where kode_normal = ${kodeNormal})`,
-              nomorETiket: `ET-${data.kode}`,
-              waktuTerbit: new Date(data.waktuDibuat + 3_600_000),
+              nomorETiket: eTiket.nomorETiket,
+              waktuTerbit,
             }),
           ]
         : []),
+      // Email e-tiket dikirim semenit setelah terbit (di bawah batas 5 menit, Asumsi 12).
+      ...(punyaETiket ? eTiket.email : []).map((e) =>
+        db.insert(emailTerkirim).values({
+          pemesananId: sql`(select id from pemesanan where kode_normal = ${kodeNormal})`,
+          ...e,
+          waktuKirim: new Date(waktuTerbit.getTime() + 60_000),
+        }),
+      ),
     ])
   }
 }

@@ -22,3 +22,8 @@ export const VARIAN_STATUS_PROFIL: Record<StatusProfil, VarianPill> = {
   lengkap: 'positive',
   tidakLengkap: 'warning',
 }
+
+const FORMAT_WAKTU_KIRIM = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Jakarta' })
+
+/** Instan ISO (UTC) -> "18 Nov 2026 08.00 WIB" (waktu server WIB, G1). */
+export const formatWaktuKirim = (iso: string) => `${FORMAT_WAKTU_KIRIM.format(new Date(iso))} WIB`

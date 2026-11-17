@@ -1,7 +1,9 @@
 // Pemetaan Pemesanan -> baris "Tiket Saya" dan informasi penerbangan; dipakai PengendaliPemesanan dan PengendaliPembatalan.
 import {
   dapatDibatalkanPada,
+  etiketBerlaku,
   LABEL_STATUS_BOOKING,
+  punyaPeran,
   tersedia,
   type InformasiPenerbangan,
   type TiketSaya,
@@ -17,13 +19,14 @@ export const keInformasiPenerbangan = (f: PenerbanganLengkap, penumpangAktif: nu
 })
 
 /**
- * Baris Tiket Saya untuk `akun`. `dapatDibatalkan` hanya benar bila akun adalah pemesan (G4) dan
+ * Baris Tiket Saya untuk `akun`. `dapatDibatalkan` hanya benar bila akun adalah Calon Penumpang pemesannya (G4: pemesanan
+ * Manajer Travel tidak dapat dibatalkan siapa pun) dan
  * Pemesanan.dapatDibatalkan() berlaku (belum Cancelled, belum berangkat menurut waktu setempat, G1).
  */
 export async function muatTiketSaya(
   katalog: AntarmukaKatalogPenerbangan,
   baris: PemesananBaris[],
-  akun: Pick<Akun, 'id'>,
+  akun: Pick<Akun, 'id' | 'peran'>,
   sekarang: Date,
 ): Promise<TiketSaya[]> {
   const ids = [...new Set(baris.map((b) => b.penerbanganId))]
@@ -35,9 +38,11 @@ export async function muatTiketSaya(
       status: b.status,
       label: LABEL_STATUS_BOOKING[b.status],
       waktuDibuat: b.waktuDibuat.toISOString(),
-      dapatDibatalkan: b.pemesanId === akun.id && dapatDibatalkanPada(b.status, f, sekarang),
+      dapatDibatalkan: b.pemesanId === akun.id && punyaPeran(akun.peran, ['CalonPenumpang']) && dapatDibatalkanPada(b.status, f, sekarang),
       penumpang: b.penumpang.map((p) => p.namaLengkap),
       penerbangan: keInformasiPenerbangan(f, aktif.get(f.id) ?? 0, sekarang),
+      // G5: e-tiket tetap tampil setelah Cancelled, tetapi `berlaku` salah (void).
+      eTiket: b.eTiket && { nomor: b.eTiket.nomor, waktuTerbit: b.eTiket.waktuTerbit.toISOString(), berlaku: etiketBerlaku(b.status) },
     }
   })
 }

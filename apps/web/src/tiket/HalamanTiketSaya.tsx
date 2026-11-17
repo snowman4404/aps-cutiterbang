@@ -4,9 +4,8 @@ import { samaKode, type TiketSaya } from '@cutiterbang/domain'
 import { panggil } from '../lib/api.ts'
 import { useAksi } from '../lib/useAksi.ts'
 import { PESAN_GALAT_UMUM, useMuat } from '../lib/useMuat.ts'
-import { Alert, Button, Card, Dialog, EmptyState, Kode, LinkTombol, PageTitle, Pill } from '../ui/index.ts'
-import { VARIAN_STATUS_BOOKING } from './format.ts'
-import { InfoPenerbangan } from './InfoPenerbangan.tsx'
+import { Alert, Button, Dialog, EmptyState, LinkTombol, PageTitle } from '../ui/index.ts'
+import { KartuTiket } from './KartuTiket.tsx'
 
 // "Tiket Saya" (US-2a langkah 10, US-2b): daftar pemesanan, pemesan baru disorot (`?baru=<kode>`), aksi batal hanya
 // bila `dapatDibatalkan` (2a), dan Dialog Konfirmasi sebelum membatalkan (3, 4, 4a).
@@ -66,44 +65,20 @@ export default function HalamanTiketSaya() {
           </EmptyState>
         ) : (
           <ul aria-label="Daftar pemesanan" className="flex flex-col gap-3">
-            {daftar.map((tiket) => {
-              const disorot = baru !== null && samaKode(tiket.kode, baru)
-              return (
-                <li
-                  key={tiket.kode}
-                  data-testid="tiket"
-                  data-kode={tiket.kode}
-                  data-baru={disorot ? 'true' : undefined}
-                  aria-current={disorot ? 'true' : undefined}
-                  aria-label={disorot ? `Pemesanan baru ${tiket.kode}` : undefined}
-                >
-                  <Card className={`flex flex-col gap-4 ${disorot ? 'outline-2 outline-accent' : ''}`}>
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="flex items-center gap-3">
-                        <span className="text-sm text-muted">Kode</span>
-                        <span data-testid="kode">
-                          <Kode>{tiket.kode}</Kode>
-                        </span>
-                      </span>
-                      <span data-testid="status">
-                        <Pill varian={VARIAN_STATUS_BOOKING[tiket.status]}>{tiket.label}</Pill>
-                      </span>
-                    </div>
-                    <InfoPenerbangan penerbangan={tiket.penerbangan} />
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <span className="text-sm text-muted">
-                        Penumpang: <span className="text-ink" data-testid="penumpang">{tiket.penumpang.join(', ')}</span>
-                      </span>
-                      {tiket.dapatDibatalkan && (
-                        <Button varian="secondary" ukuran="sm" aria-label={`Batalkan pemesanan ${tiket.kode}`} onClick={() => setTarget(tiket)}>
-                          Batalkan
-                        </Button>
-                      )}
-                    </div>
-                  </Card>
-                </li>
-              )
-            })}
+            {daftar.map((tiket) => (
+              <KartuTiket
+                key={tiket.kode}
+                tiket={tiket}
+                disorot={baru !== null && samaKode(tiket.kode, baru)}
+                aksi={
+                  tiket.dapatDibatalkan && (
+                    <Button varian="secondary" ukuran="sm" aria-label={`Batalkan pemesanan ${tiket.kode}`} onClick={() => setTarget(tiket)}>
+                      Batalkan
+                    </Button>
+                  )
+                }
+              />
+            ))}
           </ul>
         ))}
 

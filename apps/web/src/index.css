@@ -103,10 +103,11 @@
   /* Ukuran form: `max-w-form` (kartu/pilihan 420px), `sm:w-kolom-tanggal` (kolom tanggal 200px),
      `sm:pt-label-field` (tinggi label + jarak Field, supaya tombol sejajar dengan kontrol), `text-stat` (angka besar),
      `max-w-dialog` (lebar Dialog: 420px, menyusut menyisakan 16px di tiap sisi pada ponsel),
-     `sm:grid-cols-ringkasan` (label + nilai, kolom label 180px) dan `desk:grid-cols-cari` (baris formulir pencarian). */
+     `sm:grid-cols-ringkasan` (label + nilai, kolom label 180px) dan `desk:grid-cols-cari` (baris formulir pencarian; `desk:grid-cols-cari-pengunjung` menambah kolom jumlah penumpang). */
   --container-form: 420px;
   --container-dialog: min(420px, calc(100vw - 32px));
   --spacing-kolom-tanggal: 200px;
+  --spacing-kolom-jumlah: 150px;
   --spacing-kolom-label: 180px;
   --spacing-label-field: 22px;
   --text-stat: 32px;
@@ -118,6 +119,9 @@
 }
 @utility grid-cols-cari {
   grid-template-columns: 1fr 1fr var(--spacing-kolom-tanggal) auto;
+}
+@utility grid-cols-cari-pengunjung {
+  grid-template-columns: 1fr 1fr var(--spacing-kolom-tanggal) var(--spacing-kolom-jumlah) auto;
 }
 
 @layer base {

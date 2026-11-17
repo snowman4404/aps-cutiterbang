@@ -64,15 +64,26 @@ Phases run in order: each one builds on the data and screens of the one before. 
 - [x] US-6c Memesan penerbangan dari tampilan perbandingan (includes US-2a)
 
 ## Phase 6: Manajer Travel and Pengunjung
-**Decision:** G7 (block picking the same pengunjung twice in one booking?)
+**Decided (2026-11-18):**
+- G7: the same pengunjung cannot appear twice in one booking. Domain invariant `self.penumpang->isUnique(mewakili)` (inside `memenuhiPesananPengunjung`, with `validasiDaftarPengunjung` as the input check); the checkbox list cannot pick duplicates and the API rejects duplicate ids with 400 "Pengunjung yang sama dipilih dua kali dalam satu pemesanan" (the G7 row's own phrase).
+- Messages with no exact spec text reuse the spec's condition phrase: US-8b empty list "Pilih satu atau lebih pengunjung terdaftar" (step 2), id that is not a registered Pengunjung "Pengunjung tidak terdaftar" (400), US-8a 2a "Jumlah penumpang wajib diisi", 2d "Jumlah penumpang harus bilangan bulat minimal 1". 5a is "Data profil tidak lengkap: <nama>" (all incomplete names, comma separated).
+- US-8b order: role, list not empty and unique (400), unknown flight (404), unknown pengunjung (400), 5a profile check (409), then departed or seats < count (409 "Kursi sudah habis"). The searched jumlah is only a hint on the booking page.
+- G4: bookings made by a Manajer Travel never get `dapatDibatalkan` (C3 only lets the Calon Penumpang who is the pemesan cancel).
+- Demo data: `pengunjung3@cutiterbang.test` (Citra Anggraini, profil lengkap) and booking CTB007 (travel, WaitingForThePayment, for pengunjung1 + pengunjung3); pengunjung2 has no booking.
+- Simulator (user decided): the external systems are mock endpoints `POST /api/simulasi/pembayaran/:kode` (WaitingForThePayment → Booked) and `POST /api/simulasi/maskapai/:kode` (Booked → Confirmed). No role guard (they stand in for other systems), but gated like `POST /api/dev/reset` (404 in production unless `IZINKAN_RESET=1`, reusing `resetDiizinkan`). Transitions go through the domain `transisi`; the status change is guarded in SQL (`WHERE status = <expected>`) inside one `db.batch` with its entry effects. Illegal transition → 409 "Status booking <label> tidak dapat diubah oleh simulasi ini" (no spec text); unknown kode → 404 "Kode booking reference tidak ditemukan".
+- Simulator buttons: small "Simulasikan pembayaran" (WaitingForThePayment rows) and "Simulasikan konfirmasi maskapai" (Booked rows) in a "Simulator demo" column on the US-7 table, shown only when `/health` reports `resetAktif`, labelled as a demo simulator and not part of US-7. They move to the Phase 7 dev panel later.
+- US-8d: entering Confirmed (Antarmuka Maskapai → `PengendaliETiket`) runs `ubahStatus(Confirmed)`, `terbitkanETiket` (ETiket `ET-<kode>`) and sends the e-tiket through a mock Layanan Email to every address of `penerimaETiket()` (G6: only manager bookings, to each represented pengunjung's Profil email, read at send time; US-2a bookings get an ETiket but no email). All in one `db.batch`. Sending is synchronous at confirmation, which meets the 5-minute limit (Asumsi 12); `waktu_kirim` is stored. The mock email is the outbox table `email_terkirim` (migration `0007_tired_husk`; UNIQUE pemesanan + kepada); the Pengunjung sees their emails (kepada, waktu kirim, subject, content) on `/tiket-dipesankan`.
+- G5 display: every card with an ETiket shows its nomor; for a Cancelled booking the e-tiket is void: label "Dibatalkan" and the note "E-tiket ini tidak berlaku untuk perjalanan karena pemesanan dibatalkan". `TiketSaya.eTiket = { nomor, waktuTerbit, berlaku }`.
+- US-7: `GET /api/travel/status?status=` (empty/absent/`semua` = Semua status; filter kept in the URL); rows = kode, all passenger names, status, newest `waktuDibuat` first. Texts: 3a "Tidak ada pemesanan dengan status ini" (spec); a status outside the five choices → 400 "Status booking tidak dikenal" (no spec text). US-9: `POST /api/travel/cek-kode`; 2a reuses "Kolom kode kosong" (as US-5b), 4a "Kode booking reference tidak ditemukan" (spec).
+- Demo data: CTB008 (travel, Booked, pengunjung1), CTB009 (travel, Confirmed, pengunjung1 + pengunjung3, with ETiket and outbox emails to their Profil emails), CTB010 (penumpang, Confirmed then Cancelled, ETiket kept: G5 void demo).
 Note: US-8b (contract C2) and US-8d read the Pengunjung's `Profil`, which Phase 5 creates.
-- [ ] US-8a Mencari penerbangan untuk pengunjung
-- [ ] US-8b Memesan tiket atas nama pengunjung (contract C2)
-- [ ] US-8c Melihat tiket yang dipesankan
-- [ ] Simulator endpoints: payment (→ Booked), airline confirmation (→ Confirmed)
-- [ ] US-8d Menerima e-tiket melalui email (stored outbox, viewable in the UI); G5: e-tiket of a cancelled booking shown as void
-- [ ] US-7 Memantau status booking
-- [ ] US-9 Memeriksa status booking dengan kode booking reference
+- [x] US-8a Mencari penerbangan untuk pengunjung
+- [x] US-8b Memesan tiket atas nama pengunjung (contract C2)
+- [x] US-8c Melihat tiket yang dipesankan
+- [x] Simulator endpoints: payment (→ Booked), airline confirmation (→ Confirmed)
+- [x] US-8d Menerima e-tiket melalui email (stored outbox, viewable in the UI); G5: e-tiket of a cancelled booking shown as void
+- [x] US-7 Memantau status booking
+- [x] US-9 Memeriksa status booking dengan kode booking reference
 
 ## Phase 7: Polish and submission
 - [ ] Design pass over all screens (consistent look, mobile width)

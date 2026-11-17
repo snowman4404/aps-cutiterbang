@@ -61,6 +61,23 @@ export const PESAN_KODE_TIDAK_DITEMUKAN = 'Kode booking reference tidak ditemuka
 /** Kondisi ekstensi 2a US-2b; dipakai juga sebagai alasan penolakan pembatalan di API. */
 export const PESAN_TIDAK_DAPAT_DIBATALKAN = 'Pemesanan berstatus Cancelled atau waktu berangkatnya sudah lewat'
 
+/** E-tiket sebuah pemesanan (US-8d, G5): `berlaku` salah setelah pemesanan Cancelled (e-tiket tetap ada tetapi void). */
+export interface ETiketDto {
+  nomor: string
+  /** Instan terbit, ISO 8601 UTC. */
+  waktuTerbit: string
+  berlaku: boolean
+}
+
+/** Email e-tiket yang tersimpan di kotak keluar Layanan Email (US-8d langkah 3). */
+export interface EmailETiketDto {
+  kepada: string
+  subjek: string
+  isi: string
+  /** Instan kirim, ISO 8601 UTC. */
+  waktuKirim: string
+}
+
 /** Satu pemesanan di "Tiket Saya". */
 export interface TiketSaya {
   kode: string
@@ -72,6 +89,10 @@ export interface TiketSaya {
   dapatDibatalkan: boolean
   penumpang: string[]
   penerbangan: InformasiPenerbangan
+  /** Ada hanya setelah Confirmed (tetap ada setelah Cancelled, G5). */
+  eTiket: ETiketDto | null
+  /** Hanya pada "Tiket Saya" Pengunjung (US-8d): email e-tiket yang dikirim kepadanya, terbaru dulu. */
+  emailETiket?: EmailETiketDto[]
 }
 
 /** Bentuk Pemesanan yang diperiksa invarian: Penumpang dengan data wajibnya dan akun yang `mewakili`. */
