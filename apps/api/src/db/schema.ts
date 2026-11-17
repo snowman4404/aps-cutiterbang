@@ -76,11 +76,11 @@ export const penerbangan = sqliteTable(
       .notNull()
       .references(() => kota.id),
   },
-  (t) => [
-    unique().on(t.nomorPenerbangan, t.tanggalKeberangkatan),
+  (tabel) => [
+    unique().on(tabel.nomorPenerbangan, tabel.tanggalKeberangkatan),
     // inv KotaBerbeda. TidakOverbooking penuh (sisaKursi >= 0) dijaga AlokasiKursi (Fase 4); di sini hanya jumlah kursi tak negatif.
-    check('penerbangan_kota_berbeda', sql`${t.asalId} <> ${t.tujuanId}`),
-    check('penerbangan_jumlah_kursi_tak_negatif', sql`${t.jumlahKursi} >= 0`),
+    check('penerbangan_kota_berbeda', sql`${tabel.asalId} <> ${tabel.tujuanId}`),
+    check('penerbangan_jumlah_kursi_tak_negatif', sql`${tabel.jumlahKursi} >= 0`),
   ],
 )
 

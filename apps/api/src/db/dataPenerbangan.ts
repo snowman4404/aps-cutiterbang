@@ -58,7 +58,7 @@ export const DEMO = {
   tanpaPenerbangan: { asal: 'Medan', tujuan: 'Jayapura' },
 } as const
 
-const ZONA = new Map(KOTA.map((k) => [k.nama, k.zonaWaktu]))
+const ZONA = new Map(KOTA.map((kota) => [kota.nama, kota.zonaWaktu]))
 
 // [asal, tujuan, durasi terbang (menit), padat?]; dibuat dua arah. Medan-Jayapura sengaja tidak ada.
 const RUTE_DASAR: [string, string, number, boolean][] = [
@@ -108,10 +108,10 @@ export function buatDataPenerbangan(hariIni: TanggalIso): {
         const instanTiba = instanDariWaktuLokal(tanggal, berangkat, zonaAsal) + rute.durasi * 60_000
         const tiba = waktuLokalDariInstan(instanTiba, zonaTujuan)
         if (tiba.tanggal !== tanggal) return
-        const m = MASKAPAI[(idxRute + slot) % MASKAPAI.length]!
+        const maskapaiTerbang = MASKAPAI[(idxRute + slot) % MASKAPAI.length]!
         penerbangan.push({
-          nomorPenerbangan: `${m.kode}${100 + idxRute * 10 + slot}`,
-          maskapai: m.nama,
+          nomorPenerbangan: `${maskapaiTerbang.kode}${100 + idxRute * 10 + slot}`,
+          maskapai: maskapaiTerbang.nama,
           asal: rute.asal,
           tujuan: rute.tujuan,
           tanggalKeberangkatan: tanggal,
@@ -127,12 +127,12 @@ export function buatDataPenerbangan(hariIni: TanggalIso): {
   // (a) Urutan seed berbeda dari urutan berangkat pada rute padat di hariKe: balik urutan penyisipannya.
   const { rutePadat } = DEMO
   const tanggalPadat = tambahHari(hariIni, rutePadat.hariKe)
-  const cocokPadat = (p: DataPenerbangan) =>
-    p.asal === rutePadat.asal && p.tujuan === rutePadat.tujuan && p.tanggalKeberangkatan === tanggalPadat
-  const posisi = penerbangan.flatMap((p, i) => (cocokPadat(p) ? [i] : []))
-  const terbalik = posisi.map((i) => penerbangan[i]!).reverse()
-  posisi.forEach((i, k) => {
-    penerbangan[i] = terbalik[k]!
+  const cocokPadat = (data: DataPenerbangan) =>
+    data.asal === rutePadat.asal && data.tujuan === rutePadat.tujuan && data.tanggalKeberangkatan === tanggalPadat
+  const posisi = penerbangan.flatMap((data, indeks) => (cocokPadat(data) ? [indeks] : []))
+  const terbalik = posisi.map((indeks) => penerbangan[indeks]!).reverse()
+  posisi.forEach((indeks, urutan) => {
+    penerbangan[indeks] = terbalik[urutan]!
   })
 
   // (b) G1: satu-satunya penerbangan Jayapura -> Makassar, setiap hari pukul 00:00 WIT (tiba 01:30 WITA).

@@ -7,11 +7,11 @@ import { buatPengendaliPencarian } from './pengendaliPencarian.ts'
 
 export function rutePenerbangan(db: Db, hariIni: () => TanggalIso, sekarang: () => Date) {
   const pengendali = buatPengendaliPencarian(antarmukaKatalogPenerbangan(db), hariIni, sekarang)
-  const r = new Hono()
+  const rute = new Hono()
 
-  r.get('/kota', async (c) => c.json(await pengendali.muatDaftarKota()))
+  rute.get('/kota', async (c) => c.json(await pengendali.muatDaftarKota()))
 
-  r.get('/cari', async (c) => {
+  rute.get('/cari', async (c) => {
     const hasil = await pengendali.cariPenerbangan({
       asal: c.req.query('asal'),
       tujuan: c.req.query('tujuan'),
@@ -20,5 +20,5 @@ export function rutePenerbangan(db: Db, hariIni: () => TanggalIso, sekarang: () 
     return 'galat' in hasil ? c.json(hasil, 400) : c.json(hasil)
   })
 
-  return r
+  return rute
 }

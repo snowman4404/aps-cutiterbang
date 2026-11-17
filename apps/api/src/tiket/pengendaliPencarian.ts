@@ -30,7 +30,7 @@ export function buatPengendaliPencarian(
   async function validasiIsian(mentah: IsianMentah): Promise<GalatPencarian> {
     const isian = rapikanIsian(mentah)
     const galat = validasiIsianPencarian(isian, hariIni())
-    const idDikenal = new Set((await data.ambilDaftarKota()).map((k) => k.id))
+    const idDikenal = new Set((await data.ambilDaftarKota()).map((kotaBaris) => kotaBaris.id))
     const tidakDikenal = (teks: string) => !idDikenal.has(idKotaDariTeks(teks) ?? NaN)
     if (!galat.asal && tidakDikenal(isian.asal)) galat.asal = PESAN_ASAL_TIDAK_DIKENAL
     if ((!galat.tujuan || galat.tujuan === PESAN_KOTA_SAMA) && tidakDikenal(isian.tujuan)) {
@@ -47,12 +47,12 @@ export function buatPengendaliPencarian(
     const { asal, tujuan, tanggal } = rapikanIsian(mentah)
     const kriteria = { asalId: idKotaDariTeks(asal)!, tujuanId: idKotaDariTeks(tujuan)!, tanggal }
     const kandidat = await data.ambilPenerbanganRute(kriteria.asalId, kriteria.tujuanId, tanggal)
-    const penumpangAktifPerId = await data.jumlahPenumpangAktif(kandidat.map((f) => f.id))
+    const penumpangAktifPerId = await data.jumlahPenumpangAktif(kandidat.map((penerbanganKandidat) => penerbanganKandidat.id))
     const penumpangAktif = (id: number) => penumpangAktifPerId.get(id) ?? 0
 
     const sekarangIni = sekarang()
-    const penerbanganCocok = kandidat.filter((f) => cocok(f, kriteria, sekarangIni, penumpangAktif(f.id)))
-    const penerbangan = urutkanMenurutWaktuBerangkat(penerbanganCocok).map((f) => keHasilPencarian(f, penumpangAktif(f.id)))
+    const penerbanganCocok = kandidat.filter((kandidatPenerbangan) => cocok(kandidatPenerbangan, kriteria, sekarangIni, penumpangAktif(kandidatPenerbangan.id)))
+    const penerbangan = urutkanMenurutWaktuBerangkat(penerbanganCocok).map((hasilCocok) => keHasilPencarian(hasilCocok, penumpangAktif(hasilCocok.id)))
     return { penerbangan }
   }
 

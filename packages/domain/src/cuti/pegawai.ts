@@ -13,7 +13,7 @@ export interface Pegawai {
  * G9: cuti yang melewati 31 Des dihitung penuh ke tahun tanggalMulai.
  */
 export const cutiDisetujuiTahunIni = <T extends PengajuanCuti>(daftar: readonly T[], hariIni: TanggalIso): T[] =>
-  daftar.filter((p) => p.status === 'Disetujui' && tahunDari(p.tanggalMulai) === tahunDari(hariIni))
+  daftar.filter((pengajuan) => pengajuan.status === 'Disetujui' && tahunDari(pengajuan.tanggalMulai) === tahunDari(hariIni))
 
 /** riwayatCuti: cutiDisetujuiTahunIni, tanggalMulai menurun. */
 export const riwayatCuti = <T extends PengajuanCuti>(daftar: readonly T[], hariIni: TanggalIso): T[] =>

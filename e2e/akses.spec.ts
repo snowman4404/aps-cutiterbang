@@ -62,6 +62,8 @@ for (const p of PERAN) {
     await expect(page.getByRole('heading', { name: new RegExp(`Halo, ${p.nama}`) })).toBeVisible()
     await expect(page.getByTestId('pengguna')).toContainText(p.nama)
     await expect(page.getByTestId('pengguna')).toContainText(p.label)
+    await expect(page.getByText(/fase/i)).toHaveCount(0) // Beranda tidak menampilkan perancah pembangunan
+    await expect(page.getByText(/^US-/).first()).toBeVisible() // kode use case tetap tampil sebagai teks kecil abu
     for (const l of p.nav) await expect(nav(page).getByRole('link', { name: l, exact: true })).toBeVisible()
     for (const l of p.tidak) await expect(nav(page).getByRole('link', { name: l, exact: true })).toHaveCount(0)
   })
@@ -98,6 +100,9 @@ test('Member dapat membuka /tiket-saya (CalonPenumpang)', async ({ page }) => {
   await nav(page).getByRole('link', { name: 'Tiket Saya' }).click()
   await expect(page).toHaveURL(/\/tiket-saya$/)
   await expect(page.getByRole('heading', { name: 'Tiket Saya' })).toBeVisible()
+  // Halaman yang belum dibangun tidak membocorkan perancah pembangunan (fase).
+  await expect(page.getByText('Belum tersedia')).toBeVisible()
+  await expect(page.getByText(/fase/i)).toHaveCount(0)
   await expect(page.getByText(TIDAK_ADA_AKSES)).toHaveCount(0)
 })
 

@@ -46,7 +46,7 @@ function offsetZona(zona: ZonaWaktu, instan: number): number {
     minute: 'numeric',
     second: 'numeric',
   }).formatToParts(new Date(instan))
-  const nilai = (jenis: string) => Number(bagian.find((b) => b.type === jenis)!.value)
+  const nilai = (jenis: string) => Number(bagian.find((bagianWaktu) => bagianWaktu.type === jenis)!.value)
   const sebagaiUtc = Date.UTC(
     nilai('year'),
     nilai('month') - 1,
@@ -60,9 +60,9 @@ function offsetZona(zona: ZonaWaktu, instan: number): number {
 
 /** Ubah tanggal + waktu lokal di sebuah zona menjadi instan absolut (ms sejak epoch). NaN bila format salah. */
 export function instanDariWaktuLokal(tanggal: TanggalIso, waktu: string, zona: ZonaWaktu): number {
-  const p = pecahTanggalWaktu(tanggal, waktu)
-  if (!p) return NaN
-  const lokalSebagaiUtc = Date.UTC(p.tahun, p.bulan - 1, p.hari, p.jam, p.menit)
+  const komponen = pecahTanggalWaktu(tanggal, waktu)
+  if (!komponen) return NaN
+  const lokalSebagaiUtc = Date.UTC(komponen.tahun, komponen.bulan - 1, komponen.hari, komponen.jam, komponen.menit)
   // Dua iterasi menyelesaikan offset di sekitar pergantian DST; zona Indonesia tanpa DST selesai di iterasi pertama.
   let instan = lokalSebagaiUtc - offsetZona(zona, lokalSebagaiUtc)
   instan = lokalSebagaiUtc - offsetZona(zona, instan)

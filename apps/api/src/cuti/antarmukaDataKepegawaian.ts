@@ -32,7 +32,7 @@ export function antarmukaDataKepegawaian(db: Db) {
     },
 
     async ambilHariLibur(): Promise<TanggalIso[]> {
-      return (await db.select({ tanggal: hariLibur.tanggal }).from(hariLibur)).map((b) => b.tanggal)
+      return (await db.select({ tanggal: hariLibur.tanggal }).from(hariLibur)).map((baris) => baris.tanggal)
     },
 
     /** ambilPengajuanBeririsan: Diajukan atau Disetujui yang beririsan dengan [mulai, akhir]. */

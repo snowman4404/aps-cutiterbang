@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { panggil } from '../akses/api.ts'
+import { panggil } from '../lib/api.ts'
 import { Alert, DataTable, EmptyState, PageTitle } from '../ui/index.ts'
 import { formatTanggal } from '../lib/tanggal.ts'
 import { formatLama, type PegawaiRingkas } from './format.ts'
@@ -25,10 +25,10 @@ export default function HalamanRiwayatCuti() {
     setData(null)
     setGalat('')
     if (nip) {
-      void panggil<Riwayat>(`/cuti/pegawai/${encodeURIComponent(nip)}/riwayat`).then((r) => {
+      void panggil<Riwayat>(`/cuti/pegawai/${encodeURIComponent(nip)}/riwayat`).then((respons) => {
         if (batal) return
-        if (r.status === 200) setData(r.data)
-        else setGalat(r.data.pesan ?? 'Terjadi kesalahan, coba lagi')
+        if (respons.status === 200) setData(respons.data)
+        else setGalat(respons.data.pesan ?? 'Terjadi kesalahan, coba lagi')
       })
     }
     return () => {
@@ -39,7 +39,7 @@ export default function HalamanRiwayatCuti() {
   return (
     <section className="flex flex-col gap-6">
       <PageTitle finding="Cuti yang disetujui dan mulai pada tahun berjalan, terbaru di atas.">Riwayat Cuti</PageTitle>
-      <PilihPegawai nip={nip} onPilih={(n) => setParams(n ? { nip: n } : {})} />
+      <PilihPegawai nip={nip} onPilih={(nipTerpilih) => setParams(nipTerpilih ? { nip: nipTerpilih } : {})} />
       {galat && <Alert varian="negative">{galat}</Alert>}
       {data &&
         (data.riwayat.length === 0 ? (
@@ -58,11 +58,11 @@ export default function HalamanRiwayatCuti() {
                 </tr>
               </thead>
               <tbody>
-                {data.riwayat.map((c) => (
-                  <tr key={c.tanggalMulai}>
-                    <td>{formatTanggal(c.tanggalMulai)}</td>
-                    <td>{formatTanggal(c.tanggalAkhir)}</td>
-                    <td className="num">{formatLama(c.lamaCuti)}</td>
+                {data.riwayat.map((cuti) => (
+                  <tr key={cuti.tanggalMulai}>
+                    <td>{formatTanggal(cuti.tanggalMulai)}</td>
+                    <td>{formatTanggal(cuti.tanggalAkhir)}</td>
+                    <td className="num">{formatLama(cuti.lamaCuti)}</td>
                   </tr>
                 ))}
               </tbody>

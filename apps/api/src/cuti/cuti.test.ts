@@ -6,12 +6,13 @@ import {
   PESAN_MULAI_WAJIB,
   PESAN_TIDAK_ADA_AKSES,
   PESAN_TIDAK_ADA_PENGAJUAN,
+  SANDI_DEMO,
 } from '@cutiterbang/domain'
 import { buatApp } from '../app.ts'
 import { buatDb } from '../db/client.ts'
 import { NIP } from '../db/dataCuti.ts'
 import { jalankanMigrasi } from '../db/migrate.ts'
-import { seed, SANDI_DEMO } from '../db/seed.ts'
+import { seed } from '../db/seed.ts'
 
 // Seed dihitung dari 2026: 2 Feb 2026 = Senin, 14 Sep 2026 = Senin.
 const HARI_INI = '2026-11-17'
@@ -19,8 +20,8 @@ const HARI_INI = '2026-11-17'
 let app: ReturnType<typeof buatApp>
 let cookie = ''
 
-const ambil = (path: string, c: string | undefined = cookie) =>
-  app.request(`/api/cuti${path}`, { headers: c ? { Cookie: c } : {} })
+const ambil = (path: string, cookieSesi: string | undefined = cookie) =>
+  app.request(`/api/cuti${path}`, { headers: cookieSesi ? { Cookie: cookieSesi } : {} })
 
 const masuk = async (email: string) => {
   const res = await app.request('/api/auth/masuk', {
@@ -47,13 +48,13 @@ const RUTE = [
 ]
 
 describe('akses', () => {
-  test.each(RUTE)('tanpa login: 401 (%s)', async (r) => {
-    expect((await ambil(r, '')).status).toBe(401)
+  test.each(RUTE)('tanpa login: 401 (%s)', async (rute) => {
+    expect((await ambil(rute, '')).status).toBe(401)
   })
 
-  test.each(RUTE)('bukan HRDManajer: 403 dan data tersembunyi (%s)', async (r) => {
+  test.each(RUTE)('bukan HRDManajer: 403 dan data tersembunyi (%s)', async (rute) => {
     for (const email of ['penumpang@cutiterbang.test', 'travel@cutiterbang.test']) {
-      const res = await ambil(r, await masuk(email))
+      const res = await ambil(rute, await masuk(email))
       expect(res.status).toBe(403)
       expect(await res.json()).toEqual({ pesan: PESAN_TIDAK_ADA_AKSES })
     }
@@ -165,16 +166,16 @@ describe('seed', () => {
     await jalankanMigrasi(db)
     await seed(db, HARI_INI)
     await seed(db, HARI_INI)
-    const a = buatApp(db, { hariIni: HARI_INI })
-    const res = await a.request('/api/cuti/pengajuan?mulai=2026-02-01&akhir=2026-04-30', {
-      headers: { Cookie: await masukKe(a) },
+    const appCuti = buatApp(db, { hariIni: HARI_INI })
+    const res = await appCuti.request('/api/cuti/pengajuan?mulai=2026-02-01&akhir=2026-04-30', {
+      headers: { Cookie: await masukKe(appCuti) },
     })
     expect((await res.json()).pengajuan).toHaveLength(4)
   })
 })
 
-async function masukKe(a: ReturnType<typeof buatApp>) {
-  const res = await a.request('/api/auth/masuk', {
+async function masukKe(appCuti: ReturnType<typeof buatApp>) {
+  const res = await appCuti.request('/api/auth/masuk', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: 'hrd@cutiterbang.test', kataSandi: SANDI_DEMO }),

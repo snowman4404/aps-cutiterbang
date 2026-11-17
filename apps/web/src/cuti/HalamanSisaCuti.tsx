@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { panggil } from '../akses/api.ts'
+import { panggil } from '../lib/api.ts'
 import { Alert, Card, PageTitle, Pill } from '../ui/index.ts'
 import { formatLama, type PegawaiRingkas } from './format.ts'
 import { PilihPegawai } from './PilihPegawai.tsx'
@@ -26,10 +26,10 @@ export default function HalamanSisaCuti() {
     setData(null)
     setGalat('')
     if (nip) {
-      void panggil<Sisa & { pesan?: string }>(`/cuti/pegawai/${encodeURIComponent(nip)}/sisa`).then((r) => {
+      void panggil<Sisa & { pesan?: string }>(`/cuti/pegawai/${encodeURIComponent(nip)}/sisa`).then((respons) => {
         if (batal) return
-        if (r.status === 200) setData(r.data)
-        else setGalat(r.data.pesan ?? 'Terjadi kesalahan, coba lagi')
+        if (respons.status === 200) setData(respons.data)
+        else setGalat(respons.data.pesan ?? 'Terjadi kesalahan, coba lagi')
       })
     }
     return () => {
@@ -42,7 +42,7 @@ export default function HalamanSisaCuti() {
       <PageTitle finding="Jatah cuti tahunan dikurangi hari kerja cuti yang disetujui pada tahun berjalan.">
         Sisa Cuti
       </PageTitle>
-      <PilihPegawai nip={nip} onPilih={(n) => setParams(n ? { nip: n } : {})} />
+      <PilihPegawai nip={nip} onPilih={(nipTerpilih) => setParams(nipTerpilih ? { nip: nipTerpilih } : {})} />
       {galat && <Alert varian="negative">{galat}</Alert>}
       {data && (
         <Card className="flex max-w-[420px] flex-col gap-4" aria-label="Sisa cuti">

@@ -1,32 +1,20 @@
 // Seed data stands in for out-of-scope systems (Data Kepegawaian, flights, cities, airlines)
 // and demo accounts for each role. Must be idempotent: skips accounts whose email exists.
-import { fileURLToPath } from 'node:url'
-import { hariIniWib, tahunDari, type Peran } from '@cutiterbang/domain'
+import { AKUN_DEMO, hariIniWib, SANDI_DEMO, tahunDari } from '@cutiterbang/domain'
 import { count } from 'drizzle-orm'
 import { hashSandi } from '../akses/sandi.ts'
 import { buatDb, type Db } from './client.ts'
+import { dijalankanLangsung } from './cli.ts'
 import { buatDataCuti } from './dataCuti.ts'
 import { buatDataPenerbangan } from './dataPenerbangan.ts'
 import { akun, hariLibur, kota, maskapai, pegawai, pengajuanCuti, penerbangan } from './schema.ts'
-
-export const SANDI_DEMO = 'rahasia123'
-
-export const AKUN_DEMO: { nama: string; email: string; peran: Peran }[] = [
-  { nama: 'Rina Wulandari', email: 'hrd@cutiterbang.test', peran: 'HRDManajer' },
-  { nama: 'Budi Santoso', email: 'penumpang@cutiterbang.test', peran: 'CalonPenumpang' },
-  { nama: 'Sari Dewi', email: 'member1@cutiterbang.test', peran: 'MemberFrequentTraveller' },
-  { nama: 'Andi Pratama', email: 'member2@cutiterbang.test', peran: 'MemberFrequentTraveller' },
-  { nama: 'Dimas Saputra', email: 'travel@cutiterbang.test', peran: 'ManajerTravel' },
-  { nama: 'Maya Lestari', email: 'pengunjung1@cutiterbang.test', peran: 'Pengunjung' },
-  { nama: 'Rizky Hidayat', email: 'pengunjung2@cutiterbang.test', peran: 'Pengunjung' },
-]
 
 // `hariIni` bisa disuntik (tes); tanggal data cuti dihitung dari tahunnya, tanggal penerbangan dari hari ini.
 export async function seed(db: Db, hariIni = hariIniWib()) {
   const kataSandiHash = await hashSandi(SANDI_DEMO)
   await db
     .insert(akun)
-    .values(AKUN_DEMO.map((a) => ({ ...a, kataSandiHash, dibuatPada: new Date() })))
+    .values(AKUN_DEMO.map((akunDemo) => ({ ...akunDemo, kataSandiHash, dibuatPada: new Date() })))
     .onConflictDoNothing({ target: akun.email })
   await seedCuti(db, tahunDari(hariIni))
   await seedPenerbangan(db, hariIni)
@@ -40,7 +28,7 @@ async function seedCuti(db: Db, tahun: number) {
   if (ada && ada.n > 0) return
   await db.insert(pegawai).values(data.pegawai).onConflictDoNothing({ target: pegawai.nomorIndukPegawai })
   const baris = await db.select().from(pegawai)
-  const idPerNip = new Map(baris.map((b) => [b.nomorIndukPegawai, b.id]))
+  const idPerNip = new Map(baris.map((pegawaiBaris) => [pegawaiBaris.nomorIndukPegawai, pegawaiBaris.id]))
   await db.insert(pengajuanCuti).values(
     data.pengajuan.map(({ nomorIndukPegawai, ...sisa }) => ({
       ...sisa,
@@ -55,25 +43,25 @@ async function seedPenerbangan(db: Db, hariIni: string) {
   const data = buatDataPenerbangan(hariIni)
   await db.insert(kota).values(data.kota).onConflictDoNothing({ target: kota.nama })
   await db.insert(maskapai).values(data.maskapai).onConflictDoNothing({ target: maskapai.nama })
-  const idKota = new Map((await db.select().from(kota)).map((k) => [k.nama, k.id]))
-  const idMaskapai = new Map((await db.select().from(maskapai)).map((m) => [m.nama, m.id]))
-  const baris = data.penerbangan.map(({ maskapai: m, asal, tujuan, ...sisa }) => ({
+  const idKota = new Map((await db.select().from(kota)).map((kotaBaris) => [kotaBaris.nama, kotaBaris.id]))
+  const idMaskapai = new Map((await db.select().from(maskapai)).map((maskapaiBaris) => [maskapaiBaris.nama, maskapaiBaris.id]))
+  const baris = data.penerbangan.map(({ maskapai: namaMaskapai, asal, tujuan, ...sisa }) => ({
     ...sisa,
-    maskapaiId: idMaskapai.get(m)!,
+    maskapaiId: idMaskapai.get(namaMaskapai)!,
     asalId: idKota.get(asal)!,
     tujuanId: idKota.get(tujuan)!,
   }))
   // Dipecah supaya tidak melewati batas jumlah variabel SQLite per pernyataan.
-  for (let i = 0; i < baris.length; i += 200) {
+  for (let awal = 0; awal < baris.length; awal += 200) {
     await db
       .insert(penerbangan)
-      .values(baris.slice(i, i + 200))
+      .values(baris.slice(awal, awal + 200))
       .onConflictDoNothing({ target: [penerbangan.nomorPenerbangan, penerbangan.tanggalKeberangkatan] })
   }
 }
 
 // CLI: `npm run db:seed`
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (dijalankanLangsung(import.meta.url)) {
   await seed(buatDb())
   console.log('Seed: akun demo dibuat')
 }

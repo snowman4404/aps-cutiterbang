@@ -3,7 +3,7 @@ export interface Respons<T> {
   data: T
 }
 
-// Pemanggil fetch tipis: selalu mengembalikan status + JSON (atau {} bila tak ada isi).
+// Pemanggil fetch tipis (netral modul: dipakai akses, cuti, tiket, dan shell): selalu mengembalikan status + JSON (atau {} bila tak ada isi).
 export async function panggil<T = Record<string, unknown>>(
   path: string,
   opsi: { method?: string; body?: unknown } = {},

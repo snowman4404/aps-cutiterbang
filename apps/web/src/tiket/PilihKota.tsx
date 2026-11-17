@@ -22,12 +22,12 @@ export function PilihKota({
 }) {
   return (
     <Field label={label} galat={galat}>
-      {(p) => (
-        <Select {...p} name={name} value={nilai} disabled={!daftar} onChange={(e) => onPilih(e.target.value)}>
+      {(kontrol) => (
+        <Select {...kontrol} name={name} value={nilai} disabled={!daftar} onChange={(event) => onPilih(event.target.value)}>
           <option value="">{daftar ? placeholder : 'Memuat…'}</option>
-          {daftar?.map((k) => (
-            <option key={k.id} value={String(k.id)}>
-              {k.nama}
+          {daftar?.map((kota) => (
+            <option key={kota.id} value={String(kota.id)}>
+              {kota.nama}
             </option>
           ))}
         </Select>

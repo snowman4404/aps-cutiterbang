@@ -1,22 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { GalatPendaftaran, Peran } from '@cutiterbang/domain'
-import { panggil } from './api.ts'
-
-export interface Akun {
-  id: number
-  nama: string
-  email: string
-  peran: Peran
-}
+import type { AkunPublik, GalatPendaftaran, PeranPendaftaran } from '@cutiterbang/domain'
+import { panggil } from '../lib/api.ts'
 
 export type HasilAuth = { ok: true } | { ok: false; pesan?: string; galat?: GalatPendaftaran }
 
 interface Auth {
-  akun: Akun | null
+  akun: AkunPublik | null
   memuat: boolean
   masuk: (email: string, kataSandi: string) => Promise<HasilAuth>
-  daftar: (data: { nama: string; email: string; kataSandi: string; peran: Peran }) => Promise<HasilAuth>
+  daftar: (data: { nama: string; email: string; kataSandi: string; peran: PeranPendaftaran }) => Promise<HasilAuth>
   keluar: () => Promise<void>
   muatUlang: () => Promise<void>
 }
@@ -24,13 +17,13 @@ interface Auth {
 const AuthContext = createContext<Auth | null>(null)
 
 interface ResponsAuth {
-  akun?: Akun
+  akun?: AkunPublik
   pesan?: string
   galat?: GalatPendaftaran
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [akun, setAkun] = useState<Akun | null>(null)
+  const [akun, setAkun] = useState<AkunPublik | null>(null)
   const [memuat, setMemuat] = useState(true)
 
   const muatUlang = useCallback(async () => {
@@ -49,9 +42,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [muatUlang])
 
   const nilai = useMemo<Auth>(() => {
-    const kirim = async (path: string, body: unknown, sukses: number): Promise<HasilAuth> => {
+    const mulaiSesiLewat = async (path: string, body: unknown, statusSukses: number): Promise<HasilAuth> => {
       const { status, data } = await panggil<ResponsAuth>(path, { body })
-      if (status === sukses && data.akun) {
+      if (status === statusSukses && data.akun) {
         setAkun(data.akun)
         return { ok: true }
       }
@@ -60,8 +53,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return {
       akun,
       memuat,
-      masuk: (email, kataSandi) => kirim('/auth/masuk', { email, kataSandi }, 200),
-      daftar: (data) => kirim('/auth/daftar', data, 201),
+      masuk: (email, kataSandi) => mulaiSesiLewat('/auth/masuk', { email, kataSandi }, 200),
+      daftar: (data) => mulaiSesiLewat('/auth/daftar', data, 201),
       keluar: async () => {
         await panggil('/auth/keluar', { method: 'POST' })
         setAkun(null)
@@ -74,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 export function useAuth(): Auth {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth harus dipakai di dalam AuthProvider')
-  return ctx
+  const konteks = useContext(AuthContext)
+  if (!konteks) throw new Error('useAuth harus dipakai di dalam AuthProvider')
+  return konteks
 }

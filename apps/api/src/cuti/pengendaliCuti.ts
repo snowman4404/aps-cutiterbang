@@ -19,17 +19,17 @@ export function buatPengendaliCuti(data: AntarmukaDataKepegawaian, hariIni: () =
   async function tampilkanPengajuan(mulai: unknown, akhir: unknown) {
     const galat: GalatPeriode = validasiPeriode({ mulai, akhir })
     if (Object.keys(galat).length > 0) return { galat }
-    const m = (mulai as string).trim()
-    const a = (akhir as string).trim()
-    const [beririsan, libur] = await Promise.all([data.ambilPengajuanBeririsan(m, a), data.ambilHariLibur()])
-    const pengajuan = urutkanDariTanggalMulaiPalingAwal(beririsan).map((p) => ({
-      id: p.id,
-      namaPegawai: p.nama,
-      nomorIndukPegawai: p.nomorIndukPegawai,
-      tanggalMulai: p.tanggalMulai,
-      tanggalAkhir: p.tanggalAkhir,
-      lamaCuti: lamaCuti(p, libur),
-      status: p.status,
+    const mulaiRapi = (mulai as string).trim()
+    const akhirRapi = (akhir as string).trim()
+    const [beririsan, libur] = await Promise.all([data.ambilPengajuanBeririsan(mulaiRapi, akhirRapi), data.ambilHariLibur()])
+    const pengajuan = urutkanDariTanggalMulaiPalingAwal(beririsan).map((baris) => ({
+      id: baris.id,
+      namaPegawai: baris.nama,
+      nomorIndukPegawai: baris.nomorIndukPegawai,
+      tanggalMulai: baris.tanggalMulai,
+      tanggalAkhir: baris.tanggalAkhir,
+      lamaCuti: lamaCuti(baris, libur),
+      status: baris.status,
     }))
     return { pengajuan, ...(pengajuan.length === 0 ? { pesan: PESAN_TIDAK_ADA_PENGAJUAN } : {}) }
   }
@@ -39,17 +39,17 @@ export function buatPengendaliCuti(data: AntarmukaDataKepegawaian, hariIni: () =
 
   /** tampilkanRiwayat(nip): US-1b. null = NIP tidak dikenal. */
   async function tampilkanRiwayat(nip: string) {
-    const p = await data.cariPegawai(nip)
-    if (!p) return null
+    const dataPegawai = await data.cariPegawai(nip)
+    if (!dataPegawai) return null
     const tahun = tahunDari(hariIni())
-    const [disetujui, libur] = await Promise.all([data.ambilCutiDisetujui(p.id, tahun), data.ambilHariLibur()])
-    const riwayat = urutkanDariPalingBaru(disetujui).map((c) => ({
-      tanggalMulai: c.tanggalMulai,
-      tanggalAkhir: c.tanggalAkhir,
-      lamaCuti: lamaCuti(c, libur),
+    const [disetujui, libur] = await Promise.all([data.ambilCutiDisetujui(dataPegawai.id, tahun), data.ambilHariLibur()])
+    const riwayat = urutkanDariPalingBaru(disetujui).map((cuti) => ({
+      tanggalMulai: cuti.tanggalMulai,
+      tanggalAkhir: cuti.tanggalAkhir,
+      lamaCuti: lamaCuti(cuti, libur),
     }))
     return {
-      pegawai: { nama: p.nama, nomorIndukPegawai: p.nomorIndukPegawai },
+      pegawai: { nama: dataPegawai.nama, nomorIndukPegawai: dataPegawai.nomorIndukPegawai },
       tahun,
       riwayat,
       ...(riwayat.length === 0 ? { pesan: PESAN_BELUM_ADA_RIWAYAT } : {}),
@@ -58,18 +58,18 @@ export function buatPengendaliCuti(data: AntarmukaDataKepegawaian, hariIni: () =
 
   /** tampilkanSisaCuti(nip): US-1c (ambilJatahDanCutiDisetujui). null = NIP tidak dikenal. */
   async function tampilkanSisaCuti(nip: string) {
-    const p = await data.cariPegawai(nip)
-    if (!p) return null
+    const dataPegawai = await data.cariPegawai(nip)
+    if (!dataPegawai) return null
     const sekarang = hariIni()
     const [disetujui, libur] = await Promise.all([
-      data.ambilCutiDisetujui(p.id, tahunDari(sekarang)),
+      data.ambilCutiDisetujui(dataPegawai.id, tahunDari(sekarang)),
       data.ambilHariLibur(),
     ])
-    const sisa = sisaCuti(p.jatahCutiTahunan, disetujui, sekarang, libur)
+    const sisa = sisaCuti(dataPegawai.jatahCutiTahunan, disetujui, sekarang, libur)
     return {
-      pegawai: { nama: p.nama, nomorIndukPegawai: p.nomorIndukPegawai },
+      pegawai: { nama: dataPegawai.nama, nomorIndukPegawai: dataPegawai.nomorIndukPegawai },
       tahun: tahunDari(sekarang),
-      jatahCutiTahunan: p.jatahCutiTahunan,
+      jatahCutiTahunan: dataPegawai.jatahCutiTahunan,
       cutiTerpakai: cutiTerpakai(disetujui, sekarang, libur),
       sisaCuti: sisa,
       melebihiJatah: sisa < 0,

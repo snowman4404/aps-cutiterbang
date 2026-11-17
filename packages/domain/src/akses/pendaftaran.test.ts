@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'vitest'
-import { validasiPendaftaran } from './pendaftaran.ts'
+import { validasiPendaftaran, type DataPendaftaran, type GalatPendaftaran } from './pendaftaran.ts'
+
+// Galat per kolom (kosong = valid).
+const galatDari = (data: DataPendaftaran): GalatPendaftaran => {
+  const hasil = validasiPendaftaran(data)
+  return hasil.ok ? {} : hasil.galat
+}
 
 const valid = {
   nama: 'Budi',
@@ -10,39 +16,52 @@ const valid = {
 
 describe('validasiPendaftaran', () => {
   test('data valid tidak menghasilkan galat', () => {
-    expect(validasiPendaftaran(valid)).toEqual({})
-    expect(validasiPendaftaran({ ...valid, peran: 'MemberFrequentTraveller' })).toEqual({})
+    expect(galatDari(valid)).toEqual({})
+    expect(galatDari({ ...valid, peran: 'MemberFrequentTraveller' })).toEqual({})
+  })
+
+  test('hasil sah: peran menyempit ke PeranPendaftaran, nama dan email dirapikan', () => {
+    const hasil = validasiPendaftaran({
+      ...valid,
+      nama: '  Budi  ',
+      email: ' budi@contoh.com ',
+      peran: 'MemberFrequentTraveller',
+    })
+    expect(hasil).toEqual({
+      ok: true,
+      data: { nama: 'Budi', email: 'budi@contoh.com', kataSandi: 'rahasia123', peran: 'MemberFrequentTraveller' },
+    })
   })
 
   test('nama kosong atau hanya spasi ditolak', () => {
-    expect(validasiPendaftaran({ ...valid, nama: '' }).nama).toBeDefined()
-    expect(validasiPendaftaran({ ...valid, nama: '   ' }).nama).toBeDefined()
+    expect(galatDari({ ...valid, nama: '' }).nama).toBeDefined()
+    expect(galatDari({ ...valid, nama: '   ' }).nama).toBeDefined()
   })
 
   test('nama lebih dari 100 karakter ditolak, tepat 100 diterima', () => {
-    expect(validasiPendaftaran({ ...valid, nama: 'a'.repeat(101) }).nama).toBeDefined()
-    expect(validasiPendaftaran({ ...valid, nama: 'a'.repeat(100) }).nama).toBeUndefined()
+    expect(galatDari({ ...valid, nama: 'a'.repeat(101) }).nama).toBeDefined()
+    expect(galatDari({ ...valid, nama: 'a'.repeat(100) }).nama).toBeUndefined()
   })
 
   test('email harus berbentuk nama@domain', () => {
     for (const email of ['', 'budi', 'budi@', '@contoh.com', 'budi@contoh', 'bu di@contoh.com']) {
-      expect(validasiPendaftaran({ ...valid, email }).email).toBeDefined()
+      expect(galatDari({ ...valid, email }).email).toBeDefined()
     }
   })
 
   test('kata sandi minimal 8 karakter', () => {
-    expect(validasiPendaftaran({ ...valid, kataSandi: '1234567' }).kataSandi).toBeDefined()
-    expect(validasiPendaftaran({ ...valid, kataSandi: '12345678' }).kataSandi).toBeUndefined()
+    expect(galatDari({ ...valid, kataSandi: '1234567' }).kataSandi).toBeDefined()
+    expect(galatDari({ ...valid, kataSandi: '12345678' }).kataSandi).toBeUndefined()
   })
 
   test('peran hanya CalonPenumpang atau MemberFrequentTraveller', () => {
     for (const peran of ['HRDManajer', 'ManajerTravel', 'Pengunjung', '', 'x']) {
-      expect(validasiPendaftaran({ ...valid, peran }).peran).toBeDefined()
+      expect(galatDari({ ...valid, peran }).peran).toBeDefined()
     }
   })
 
   test('beberapa galat sekaligus', () => {
-    const galat = validasiPendaftaran({ nama: '', email: 'x', kataSandi: 'a', peran: 'x' })
+    const galat = galatDari({ nama: '', email: 'x', kataSandi: 'a', peran: 'x' })
     expect(Object.keys(galat).sort()).toEqual(['email', 'kataSandi', 'nama', 'peran'])
   })
 })

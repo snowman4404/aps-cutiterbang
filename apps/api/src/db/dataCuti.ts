@@ -43,14 +43,14 @@ const PEGAWAI: [string, string][] = [
   ['Lestari Ningsih', NIP.lestari],
 ]
 
-const pad = (n: number) => String(n).padStart(2, '0')
-const tgl = (t: number, b: number, h: number) => `${t}-${pad(b)}-${pad(h)}`
+const duaDigit = (angka: number) => String(angka).padStart(2, '0')
+const tgl = (tahun: number, bulan: number, tanggal: number) => `${tahun}-${duaDigit(bulan)}-${duaDigit(tanggal)}`
 
 /** Senin pertama pada atau setelah tanggal ini. */
-function senin(t: number, b: number, h: number) {
-  let d = tgl(t, b, h)
-  while (hariDalamMinggu(d) !== 1) d = tambahHari(d, 1)
-  return d
+function senin(tahun: number, bulan: number, tanggal: number) {
+  let hari = tgl(tahun, bulan, tanggal)
+  while (hariDalamMinggu(hari) !== 1) hari = tambahHari(hari, 1)
+  return hari
 }
 
 export function buatDataCuti(tahun: number): {
@@ -76,38 +76,38 @@ export function buatDataCuti(tahun: number): {
     [12, 25, 'Hari Natal'],
   ]
   const hariLibur: DataHariLibur[] = []
-  for (const t of [tahun - 1, tahun, tahun + 1]) {
-    for (const [b, h, keterangan] of tetap) hariLibur.push({ tanggal: tgl(t, b, h), keterangan })
+  for (const tahunLibur of [tahun - 1, tahun, tahun + 1]) {
+    for (const [bulan, tanggal, keterangan] of tetap) hariLibur.push({ tanggal: tgl(tahunLibur, bulan, tanggal), keterangan })
   }
   // Cuti bersama demo di hari Rabu: cuti Dewi melewati hari libur dan akhir pekan sekaligus.
   const rabuBersama = tambahHari(senin(tahun, 9, 14), 2)
   hariLibur.push({ tanggal: rabuBersama, keterangan: 'Cuti bersama (demo)' })
 
-  const p = (nip: string, mulai: string, hari: number, status: StatusPengajuanCuti): DataPengajuan => ({
+  const ajukan = (nip: string, mulai: string, hari: number, status: StatusPengajuanCuti): DataPengajuan => ({
     nomorIndukPegawai: nip,
     tanggalMulai: mulai,
     tanggalAkhir: tambahHari(mulai, hari),
     status,
   })
-  const M = (b: number, h: number) => senin(tahun, b, h)
+  const seninPada = (bulan: number, tanggal: number) => senin(tahun, bulan, tanggal)
 
   const pengajuan: DataPengajuan[] = [
     // Agus: 5 + 10 hari kerja disetujui, satu menunggu.
-    p(NIP.agus, M(2, 2), 4, 'Disetujui'),
-    p(NIP.agus, M(4, 6), 11, 'Disetujui'),
-    p(NIP.agus, M(11, 23), 2, 'Diajukan'),
+    ajukan(NIP.agus, seninPada(2, 2), 4, 'Disetujui'),
+    ajukan(NIP.agus, seninPada(4, 6), 11, 'Disetujui'),
+    ajukan(NIP.agus, seninPada(11, 23), 2, 'Diajukan'),
     // Dewi: Senin sampai Senin berikutnya, melewati akhir pekan dan cuti bersama (5 hari kerja).
-    p(NIP.dewi, M(7, 6), 4, 'Disetujui'),
-    p(NIP.dewi, M(9, 14), 7, 'Disetujui'),
-    p(NIP.dewi, M(10, 12), 4, 'Diajukan'),
-    p(NIP.dewi, M(5, 18), 1, 'Ditolak'),
+    ajukan(NIP.dewi, seninPada(7, 6), 4, 'Disetujui'),
+    ajukan(NIP.dewi, seninPada(9, 14), 7, 'Disetujui'),
+    ajukan(NIP.dewi, seninPada(10, 12), 4, 'Diajukan'),
+    ajukan(NIP.dewi, seninPada(5, 18), 1, 'Ditolak'),
     // Eko: hanya cuti tahun lalu, satu ditolak, satu diajukan => riwayat tahun ini kosong.
-    p(NIP.eko, senin(tahun - 1, 11, 3), 4, 'Disetujui'),
-    p(NIP.eko, M(6, 8), 2, 'Ditolak'),
-    p(NIP.eko, M(12, 7), 3, 'Diajukan'),
+    ajukan(NIP.eko, senin(tahun - 1, 11, 3), 4, 'Disetujui'),
+    ajukan(NIP.eko, seninPada(6, 8), 2, 'Ditolak'),
+    ajukan(NIP.eko, seninPada(12, 7), 3, 'Diajukan'),
     // Fitri: 10 + 5 = 15 hari kerja dari jatah 12 => sisa -3.
-    p(NIP.fitri, M(1, 12), 11, 'Disetujui'),
-    p(NIP.fitri, M(3, 2), 4, 'Disetujui'),
+    ajukan(NIP.fitri, seninPada(1, 12), 11, 'Disetujui'),
+    ajukan(NIP.fitri, seninPada(3, 2), 4, 'Disetujui'),
     // Gunawan: lintas 31 Des (dua arah).
     {
       nomorIndukPegawai: NIP.gunawan,
@@ -115,7 +115,7 @@ export function buatDataCuti(tahun: number): {
       tanggalAkhir: tgl(tahun, 1, 3),
       status: 'Disetujui',
     },
-    p(NIP.gunawan, M(2, 16), 4, 'Disetujui'),
+    ajukan(NIP.gunawan, seninPada(2, 16), 4, 'Disetujui'),
     {
       nomorIndukPegawai: NIP.gunawan,
       tanggalMulai: tgl(tahun, 12, 28),
@@ -123,15 +123,15 @@ export function buatDataCuti(tahun: number): {
       status: 'Disetujui',
     },
     // Hana
-    p(NIP.hana, M(6, 15), 4, 'Disetujui'),
-    p(NIP.hana, M(8, 24), 1, 'Diajukan'),
-    p(NIP.hana, M(9, 28), 2, 'Ditolak'),
+    ajukan(NIP.hana, seninPada(6, 15), 4, 'Disetujui'),
+    ajukan(NIP.hana, seninPada(8, 24), 1, 'Diajukan'),
+    ajukan(NIP.hana, seninPada(9, 28), 2, 'Ditolak'),
     // Indra: ada pengajuan yang berjalan di sekitar pertengahan November.
-    p(NIP.indra, M(10, 19), 4, 'Disetujui'),
-    p(NIP.indra, M(11, 16), 4, 'Diajukan'),
+    ajukan(NIP.indra, seninPada(10, 19), 4, 'Disetujui'),
+    ajukan(NIP.indra, seninPada(11, 16), 4, 'Diajukan'),
     // Lestari
-    p(NIP.lestari, M(7, 20), 4, 'Disetujui'),
-    p(NIP.lestari, M(12, 14), 4, 'Diajukan'),
+    ajukan(NIP.lestari, seninPada(7, 20), 4, 'Disetujui'),
+    ajukan(NIP.lestari, seninPada(12, 14), 4, 'Diajukan'),
   ]
 
   return { pegawai, hariLibur, pengajuan }

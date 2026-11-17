@@ -10,6 +10,12 @@ const BENTUK = {
     </>
   ),
   panah: <path d="m6 3.5 4.5 4.5L6 12.5" />,
+  layar: (
+    <>
+      <rect x="2" y="2.5" width="12" height="8.5" rx="1.5" />
+      <path d="M6 14h4M8 11v3" />
+    </>
+  ),
 } as const
 
 export type NamaIkon = keyof typeof BENTUK
