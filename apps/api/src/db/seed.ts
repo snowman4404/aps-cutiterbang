@@ -49,13 +49,12 @@ async function seedCuti(db: Db, tahun: number) {
   )
 }
 
-// Katalog penerbangan (stand-in): Kota dan Maskapai idempoten per nama; Penerbangan dilewati bila sudah ada.
+// Katalog penerbangan (stand-in): Kota dan Maskapai idempoten per nama; Penerbangan diisi ulang bergulir
+// (hari ini .. hari ini + 30): yang sudah ada dilewati dan tidak pernah dihapus (Pemesanan Fase 4 merujuknya).
 async function seedPenerbangan(db: Db, hariIni: string) {
   const data = buatDataPenerbangan(hariIni)
   await db.insert(kota).values(data.kota).onConflictDoNothing({ target: kota.nama })
   await db.insert(maskapai).values(data.maskapai).onConflictDoNothing({ target: maskapai.nama })
-  const ada = await db.select({ n: count() }).from(penerbangan).get()
-  if (ada && ada.n > 0) return
   const idKota = new Map((await db.select().from(kota)).map((k) => [k.nama, k.id]))
   const idMaskapai = new Map((await db.select().from(maskapai)).map((m) => [m.nama, m.id]))
   const baris = data.penerbangan.map(({ maskapai: m, asal, tujuan, ...sisa }) => ({
@@ -65,7 +64,12 @@ async function seedPenerbangan(db: Db, hariIni: string) {
     tujuanId: idKota.get(tujuan)!,
   }))
   // Dipecah supaya tidak melewati batas jumlah variabel SQLite per pernyataan.
-  for (let i = 0; i < baris.length; i += 200) await db.insert(penerbangan).values(baris.slice(i, i + 200))
+  for (let i = 0; i < baris.length; i += 200) {
+    await db
+      .insert(penerbangan)
+      .values(baris.slice(i, i + 200))
+      .onConflictDoNothing({ target: [penerbangan.nomorPenerbangan, penerbangan.tanggalKeberangkatan] })
+  }
 }
 
 // CLI: `npm run db:seed`

@@ -38,10 +38,13 @@ const bukaForm = async (page: Page) => {
   await expect(page.getByLabel('Kota asal').locator('option')).toHaveCount(KOTA.length + 1)
 }
 
+// Penerbangan sebuah rute pada hari ke-N dalam urutan seed, dan versi urut keberangkatan (yang tampil di hasil).
+const ruteUrutanSeed = (asal: string, tujuan: string, hariKe: number) =>
+  DATA.penerbangan.filter(
+    (p) => p.asal === asal && p.tujuan === tujuan && p.tanggalKeberangkatan === tambahHari(HARI_INI, hariKe),
+  )
 const rute = (asal: string, tujuan: string, hariKe: number) =>
-  DATA.penerbangan
-    .filter((p) => p.asal === asal && p.tujuan === tujuan && p.tanggalKeberangkatan === tambahHari(HARI_INI, hariKe))
-    .sort((a, b) => a.waktuBerangkat.localeCompare(b.waktuBerangkat))
+  ruteUrutanSeed(asal, tujuan, hariKe).sort((a, b) => a.waktuBerangkat.localeCompare(b.waktuBerangkat))
 
 test.describe('US-3 Mencari penerbangan', () => {
   test('tanpa login: semua kota tersedia, hasil urut keberangkatan paling awal dengan kolom lengkap', async ({ page }) => {
@@ -65,9 +68,7 @@ test.describe('US-3 Mencari penerbangan', () => {
       await expect(b.getByTestId('sisa-kursi')).toHaveText(`Sisa ${p.jumlahKursi} kursi`)
     }
     // Urutan seed berbeda dari urutan berangkat, tetapi hasil tetap urut berangkat.
-    const urutanSeed = DATA.penerbangan
-      .filter((p) => p.asal === rutePadat.asal && p.tujuan === rutePadat.tujuan && p.tanggalKeberangkatan === tambahHari(HARI_INI, rutePadat.hariKe))
-      .map((p) => p.waktuBerangkat)
+    const urutanSeed = ruteUrutanSeed(rutePadat.asal, rutePadat.tujuan, rutePadat.hariKe).map((p) => p.waktuBerangkat)
     expect(urutanSeed).not.toEqual(harapan.map((p) => p.waktuBerangkat))
   })
 

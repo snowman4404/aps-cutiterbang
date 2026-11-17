@@ -2,7 +2,7 @@
 // (Katalog penerbangan adalah data seed; tidak ada sistem luar yang dipanggil.)
 import { and, asc, eq } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/sqlite-core'
-import type { Kota, Penerbangan } from '@cutiterbang/domain'
+import { sisaKursi, type HasilPencarian, type Kota, type Penerbangan } from '@cutiterbang/domain'
 import type { Db } from '../db/client.ts'
 import { kota, maskapai, penerbangan } from '../db/schema.ts'
 
@@ -11,12 +11,19 @@ export interface PenerbanganLengkap extends Penerbangan {
   maskapai: string
 }
 
-/**
- * Jumlah penumpang pada Pemesanan yang tidak berstatus Cancelled untuk sebuah penerbangan.
- * Pemesanan belum ada (Fase 4), jadi selalu 0; Fase 4 menggantinya dengan hitungan nyata
- * (dan boleh menjadikannya satu kueri agregat per daftar penerbangan).
- */
-export const jumlahPenumpangAktif = async (_penerbanganId: number): Promise<number> => 0
+/** Proyeksi penerbangan yang cocok menjadi baris hasil pencarian (menambahkan /sisaKursi). */
+export const keHasilPencarian = (f: PenerbanganLengkap, penumpangAktif: number): HasilPencarian => ({
+  id: f.id,
+  maskapai: f.maskapai,
+  nomorPenerbangan: f.nomorPenerbangan,
+  asal: f.asal,
+  tujuan: f.tujuan,
+  tanggalKeberangkatan: f.tanggalKeberangkatan,
+  waktuBerangkat: f.waktuBerangkat,
+  waktuTiba: f.waktuTiba,
+  harga: f.harga,
+  sisaKursi: sisaKursi(f.jumlahKursi, penumpangAktif),
+})
 
 export function antarmukaKatalogPenerbangan(db: Db) {
   return {
@@ -55,6 +62,14 @@ export function antarmukaKatalogPenerbangan(db: Db) {
         )
         .orderBy(asc(penerbangan.id))
       return baris
+    },
+
+    /**
+     * Jumlah penumpang pada Pemesanan yang tidak berstatus Cancelled, per id penerbangan (satu kueri agregat).
+     * Pemesanan belum ada (Fase 4), jadi semuanya 0; Fase 4 menggantinya dengan hitungan nyata.
+     */
+    async jumlahPenumpangAktif(idPenerbangan: number[]): Promise<Map<number, number>> {
+      return new Map(idPenerbangan.map((id) => [id, 0]))
     },
   }
 }

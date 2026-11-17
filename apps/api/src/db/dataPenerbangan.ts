@@ -1,6 +1,12 @@
 // Data seed modul tiket (stand-in katalog penerbangan). Murni data, tanpa I/O, supaya tes dan e2e
 // bisa memakainya. Semua tanggal dihitung dari `hariIni` (WIB) agar demo selalu bermakna.
-import { tambahHari, type TanggalIso, type ZonaWaktu } from '@cutiterbang/domain'
+import {
+  instanDariWaktuLokal,
+  tambahHari,
+  waktuLokalDariInstan,
+  type TanggalIso,
+  type ZonaWaktu,
+} from '@cutiterbang/domain'
 
 export interface DataKota {
   nama: string
@@ -18,7 +24,8 @@ export interface DataPenerbangan {
   jumlahKursi: number
 }
 
-export const JUMLAH_HARI_PENERBANGAN = 30
+/** Hari ini sampai hari ini + 30 (31 hari); `seed` menambah hari yang belum ada setiap kali server mulai. */
+export const JUMLAH_HARI_PENERBANGAN = 31
 
 export const KOTA: DataKota[] = [
   { nama: 'Jakarta', zonaWaktu: 'Asia/Jakarta' },
@@ -51,7 +58,6 @@ export const DEMO = {
   tanpaPenerbangan: { asal: 'Medan', tujuan: 'Jayapura' },
 } as const
 
-const OFFSET_JAM: Record<ZonaWaktu, number> = { 'Asia/Jakarta': 7, 'Asia/Makassar': 8, 'Asia/Jayapura': 9 }
 const ZONA = new Map(KOTA.map((k) => [k.nama, k.zonaWaktu]))
 
 // [asal, tujuan, durasi terbang (menit), padat?]; dibuat dua arah. Medan-Jayapura sengaja tidak ada.
@@ -76,10 +82,6 @@ const WAKTU_PADAT = ['06:00', '08:30', '11:15', '14:00', '17:30']
 const WAKTU_BIASA = ['07:30', '15:00']
 const FAKTOR_HARGA = [0.9, 1.1, 1.0, 1.25, 1.05]
 
-const pad = (n: number) => String(n).padStart(2, '0')
-const keMenit = (w: string) => Number(w.slice(0, 2)) * 60 + Number(w.slice(3))
-const keWaktu = (m: number) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`
-
 /** Harga dasar per rute (Rupiah) dari durasi terbang, dibulatkan ke 5.000. */
 const hargaDasar = (durasi: number) => 450_000 + durasi * 4_500
 
@@ -94,15 +96,18 @@ export function buatDataPenerbangan(hariIni: TanggalIso): {
     { asal: a, tujuan: t, durasi: d, padat },
     { asal: t, tujuan: a, durasi: d, padat },
   ]).forEach((rute, idxRute) => {
-    const selisihZona = OFFSET_JAM[ZONA.get(rute.tujuan)!] - OFFSET_JAM[ZONA.get(rute.asal)!]
+    const zonaAsal = ZONA.get(rute.asal)!
+    const zonaTujuan = ZONA.get(rute.tujuan)!
     const waktu = rute.padat ? WAKTU_PADAT : WAKTU_BIASA
     for (let hari = 0; hari < JUMLAH_HARI_PENERBANGAN; hari++) {
-      // Jayapura -> Makassar hari ini hanya penerbangan demo G1 (ditambahkan di bawah).
-      if (hari === 0 && rute.asal === 'Jayapura' && rute.tujuan === 'Makassar') continue
+      // Jayapura -> Makassar hanya dilayani penerbangan demo G1 (ditambahkan di bawah).
+      if (rute.asal === DEMO.sudahBerangkat.asal && rute.tujuan === DEMO.sudahBerangkat.tujuan) continue
       const tanggal = tambahHari(hariIni, hari)
       waktu.forEach((berangkat, slot) => {
-        const tiba = keMenit(berangkat) + rute.durasi + selisihZona * 60
-        if (tiba < 0 || tiba >= 24 * 60) return // jaga: tiba di hari lokal yang sama
+        // Waktu tiba lokal di kota tujuan; dilewati bila jatuh di tanggal lain (jaga: tiba di tanggal yang sama).
+        const instanTiba = instanDariWaktuLokal(tanggal, berangkat, zonaAsal) + rute.durasi * 60_000
+        const tiba = waktuLokalDariInstan(instanTiba, zonaTujuan)
+        if (tiba.tanggal !== tanggal) return
         const m = MASKAPAI[(idxRute + slot) % MASKAPAI.length]!
         penerbangan.push({
           nomorPenerbangan: `${m.kode}${100 + idxRute * 10 + slot}`,
@@ -111,7 +116,7 @@ export function buatDataPenerbangan(hariIni: TanggalIso): {
           tujuan: rute.tujuan,
           tanggalKeberangkatan: tanggal,
           waktuBerangkat: berangkat,
-          waktuTiba: keWaktu(tiba),
+          waktuTiba: tiba.waktu,
           harga: Math.round((hargaDasar(rute.durasi) * FAKTOR_HARGA[slot % FAKTOR_HARGA.length]!) / 5_000) * 5_000,
           jumlahKursi: 120 + ((idxRute + slot) % 4) * 20,
         })
@@ -130,19 +135,22 @@ export function buatDataPenerbangan(hariIni: TanggalIso): {
     penerbangan[i] = terbalik[k]!
   })
 
-  // (b) G1: 00:00 WIT hari ini = 22:00 WIB kemarin, jadi selalu sudah berangkat. Tiba 01:30 WITA.
+  // (b) G1: satu-satunya penerbangan Jayapura -> Makassar, setiap hari pukul 00:00 WIT (tiba 01:30 WITA).
+  // 00:00 WIT hari ini = 22:00 WIB kemarin, jadi penerbangan hari ini selalu sudah berangkat, pada hari seed mana pun.
   const g1 = DEMO.sudahBerangkat
-  penerbangan.push({
-    nomorPenerbangan: g1.nomorPenerbangan,
-    maskapai: 'Pelangi Air',
-    asal: g1.asal,
-    tujuan: g1.tujuan,
-    tanggalKeberangkatan: hariIni,
-    waktuBerangkat: g1.waktuBerangkat,
-    waktuTiba: '01:30',
-    harga: 900_000,
-    jumlahKursi: 120,
-  })
+  for (let hari = 0; hari < JUMLAH_HARI_PENERBANGAN; hari++) {
+    penerbangan.push({
+      nomorPenerbangan: g1.nomorPenerbangan,
+      maskapai: 'Pelangi Air',
+      asal: g1.asal,
+      tujuan: g1.tujuan,
+      tanggalKeberangkatan: tambahHari(hariIni, hari),
+      waktuBerangkat: g1.waktuBerangkat,
+      waktuTiba: '01:30',
+      harga: 900_000,
+      jumlahKursi: 120,
+    })
+  }
 
   return { kota: KOTA, maskapai: MASKAPAI.map(({ nama }) => ({ nama })), penerbangan }
 }

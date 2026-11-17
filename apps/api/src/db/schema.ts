@@ -1,7 +1,8 @@
 // Drizzle tables. Names follow the spec's shared vocabulary (docs/spesifikasi.md §3).
 // Run `npm run db:generate` after changing this file.
-import { integer, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core'
-import type { Peran, StatusPengajuanCuti } from '@cutiterbang/domain'
+import { sql } from 'drizzle-orm'
+import { check, integer, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core'
+import type { Peran, StatusPengajuanCuti, ZonaWaktu } from '@cutiterbang/domain'
 
 export const akun = sqliteTable('akun', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -47,7 +48,7 @@ export const hariLibur = sqliteTable('hari_libur', {
 export const kota = sqliteTable('kota', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   nama: text('nama').notNull().unique(),
-  zonaWaktu: text('zona_waktu').notNull(), // zona IANA (G1): Asia/Jakarta, Asia/Makassar, Asia/Jayapura
+  zonaWaktu: text('zona_waktu').$type<ZonaWaktu>().notNull(), // zona IANA (G1)
 })
 
 export const maskapai = sqliteTable('maskapai', {
@@ -75,7 +76,12 @@ export const penerbangan = sqliteTable(
       .notNull()
       .references(() => kota.id),
   },
-  (t) => [unique().on(t.nomorPenerbangan, t.tanggalKeberangkatan)],
+  (t) => [
+    unique().on(t.nomorPenerbangan, t.tanggalKeberangkatan),
+    // inv KotaBerbeda. TidakOverbooking penuh (sisaKursi >= 0) dijaga AlokasiKursi (Fase 4); di sini hanya jumlah kursi tak negatif.
+    check('penerbangan_kota_berbeda', sql`${t.asalId} <> ${t.tujuanId}`),
+    check('penerbangan_jumlah_kursi_tak_negatif', sql`${t.jumlahKursi} >= 0`),
+  ],
 )
 
 export type Akun = typeof akun.$inferSelect

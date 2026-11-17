@@ -23,24 +23,25 @@ What each file does. Update this file whenever you add, move, rename or delete a
 
 | File | Purpose |
 |---|---|
-| `src/index.ts` | Package entry; exports `NAMA_APLIKASI` and re-exports `akses/`, `cuti/` and `tiket/` |
+| `src/index.ts` | Package entry; exports `NAMA_APLIKASI` and re-exports `umum/`, `akses/`, `cuti/` and `tiket/` |
 | `src/index.test.ts` | Placeholder unit test |
 | `src/akses/index.ts` | Barrel for the `akses` module (must not import cuti/tiket) |
 | `src/akses/peran.ts` | `Peran`, `DAFTAR_PERAN`, `LABEL_PERAN`, `punyaPeran` (Member also satisfies CalonPenumpang), `PESAN_TIDAK_ADA_AKSES` |
 | `src/akses/peran.test.ts` | Unit tests for `punyaPeran` |
 | `src/akses/pendaftaran.ts` | `validasiPendaftaran` (field -> Indonesian error), `PERAN_PENDAFTARAN` |
 | `src/akses/pendaftaran.test.ts` | Unit tests for `validasiPendaftaran` |
+| `src/umum/index.ts` | Barrel for module-neutral helpers shared by cuti and tiket (must not import any module) |
+| `src/umum/tanggal.ts` | ISO `YYYY-MM-DD` date helpers in UTC (`adalahTanggalIso`, `tambahHari`, `hariDalamMinggu`, `tahunDari`, `hariIniWib`) and `pecahTanggalWaktu` (date + `HH:MM`) |
+| `src/umum/tanggal.test.ts` | Unit tests for the shared date helpers |
 | `src/cuti/index.ts` | Barrel for the `cuti` module (must not import tiket) |
-| `src/cuti/tanggal.ts` | ISO `YYYY-MM-DD` date helpers in UTC (`adalahTanggalIso`, `tambahHari`, `hariDalamMinggu`, `tahunDari`, `hariIniWib`) |
 | `src/cuti/kalenderKerja.ts` | `KalenderKerja`: `isHariKerja` (Mon-Fri minus `HariLibur`), `jumlahHariKerja` (inclusive) |
 | `src/cuti/pengajuanCuti.ts` | `StatusPengajuanCuti`, `lamaCuti`, `beririsan`, `validasiPeriode`, sorting, `pengajuanPadaPeriode`, cuti messages |
 | `src/cuti/pegawai.ts` | `cutiDisetujuiTahunIni`, `riwayatCuti`, `cutiTerpakai`, `sisaCuti` (G9: full to start year, may be negative) |
 | `src/cuti/cuti.test.ts` | Unit tests for the cuti domain |
-| `src/tiket/index.ts` | Barrel for the `tiket` module (must not import cuti; `tanggal.ts` is deliberately not re-exported) |
-| `src/tiket/tanggal.ts` | Private copy of small date/time parsing helpers (`adalahTanggalValid`, `pecahTanggalWaktu`) so tiket does not import cuti |
-| `src/tiket/penerbangan.ts` | `Kota` (with IANA `zonaWaktu`, G1), `Maskapai`, `Penerbangan`, `singkatanZona` (WIB/WITA/WIT), `instanDariWaktuLokal`, `waktuBerangkatAbsolut`, `sisaKursi` (count passed in), `tersedia` |
-| `src/tiket/pencarian.ts` | `validasiIsianPencarian` (3a/3b/3c), `cocok`, `urutkanMenurutWaktuBerangkat`, US-3 messages incl. `PESAN_PENERBANGAN_TIDAK_DITEMUKAN` |
-| `src/tiket/tiket.test.ts` | Unit tests for the tiket domain (incl. the G1 Jayapura case) |
+| `src/tiket/index.ts` | Barrel for the `tiket` module (must not import cuti) |
+| `src/tiket/penerbangan.ts` | `ZonaWaktu`, `Kota` (with IANA `zonaWaktu`, G1), `Maskapai`, `Penerbangan`, `singkatanZona` (WIB/WITA/WIT), `instanDariWaktuLokal` / `waktuLokalDariInstan`, `waktuBerangkatAbsolut`, `sisaKursi` (count passed in), `tersedia`, invariants `memenuhiKotaBerbeda` / `memenuhiTidakOverbooking` |
+| `src/tiket/pencarian.ts` | `IsianPencarian` / `IsianMentah` / `HasilPencarian`, `rapikanIsian`, `idKotaDariTeks`, `validasiIsianPencarian` (3a/3b/3c; 3b compares parsed kota ids), `cocok`, `urutkanMenurutWaktuBerangkat`, US-3 messages incl. `PESAN_PENERBANGAN_TIDAK_DITEMUKAN` |
+| `src/tiket/tiket.test.ts` | Unit tests for the tiket domain (incl. the G1 Jayapura case, invariants, 3b `1` vs `01`) |
 
 ## apps/api (Hono + SQLite/Drizzle)
 
@@ -57,18 +58,18 @@ What each file does. Update this file whenever you add, move, rename or delete a
 | `src/cuti/pengendaliCuti.ts` | Control `PengendaliCuti`: `tampilkanPengajuan`, `muatDaftarPegawai`, `tampilkanRiwayat`, `tampilkanSisaCuti` |
 | `src/cuti/antarmukaDataKepegawaian.ts` | Boundary "Antarmuka Data Kepegawaian": DB queries for `pegawai`, `pengajuan_cuti`, `hari_libur` |
 | `src/cuti/cuti.test.ts` | API tests: 401/403, validation 400s, overlap + sort, riwayat, sisa (negative), 404, seed idempotent |
-| `src/tiket/rute.ts` | `/api/penerbangan` (public, no guard): `GET kota`, `GET cari?asal=<kotaId>&tujuan=<kotaId>&tanggal=` (400 `{ galat }` or 200 `{ penerbangan }`, empty = not found) |
-| `src/tiket/pengendaliPencarian.ts` | Control `PengendaliPencarian`: `muatDaftarKota`, `cariPenerbangan` (validate, unknown kota check, `cocok`, sort) |
-| `src/tiket/antarmukaKatalogPenerbangan.ts` | Boundary: DB queries for `kota`, `maskapai`, `penerbangan`; `jumlahPenumpangAktif` stub (always 0 until Phase 4 adds Pemesanan) |
-| `src/tiket/tiket.test.ts` | API tests: kota list, 400s for 3a/3b/3c/unknown kota, sort order, departed flight excluded, G1, cross-zone, empty list, seed/reset |
+| `src/tiket/rute.ts` | `/api/penerbangan` (public, no guard): `GET kota`, `GET cari?asal=<kotaId>&tujuan=<kotaId>&tanggal=` (400 `{ galat }` or 200 `{ penerbangan }`, empty = not found); passes one `IsianMentah` to the control |
+| `src/tiket/pengendaliPencarian.ts` | Control `PengendaliPencarian`: `muatDaftarKota`, `validasiIsian` (domain checks + unknown kota, which wins over 3b), `cariPenerbangan(isian)` (`validasiIsian`, `cocok`, `urutkanMenurutWaktuBerangkat`, `keHasilPencarian`) |
+| `src/tiket/antarmukaKatalogPenerbangan.ts` | Boundary: DB queries for `kota`, `maskapai`, `penerbangan`; `keHasilPencarian` result mapper; `jumlahPenumpangAktif(ids)` stub returning a map (all 0 until Phase 4 adds Pemesanan) |
+| `src/tiket/tiket.test.ts` | API tests: kota list, 400s for 3a/3b (incl. `1` vs `01`)/3c/unknown kota, sort order, departed flight excluded, G1, cross-zone, empty list, seed/reset, rolling seed top-up, KotaBerbeda/TidakOverbooking (seed data and DB CHECK constraints) |
 | `src/db/client.ts` | `buatDb(url)` factory over libsql (`:memory:` for tests; default `DATABASE_URL` or `file:data/cutiterbang.db`) |
-| `src/db/schema.ts` | Drizzle tables: `akun`, `sesi`, `pegawai`, `pengajuan_cuti`, `hari_libur`, `kota`, `maskapai`, `penerbangan` |
+| `src/db/schema.ts` | Drizzle tables: `akun`, `sesi`, `pegawai`, `pengajuan_cuti`, `hari_libur`, `kota`, `maskapai`, `penerbangan` (CHECK `asal_id <> tujuan_id`, `jumlah_kursi >= 0`; `kota.zonaWaktu` typed `ZonaWaktu`) |
 | `src/db/migrate.ts` | `jalankanMigrasi(db)`; migrations folder resolved relative to the package; also a CLI |
-| `src/db/seed.ts` | `seed(db, hariIni?)` + `AKUN_DEMO`, `SANDI_DEMO`; idempotent (skips existing emails, holidays, pegawai, kota, maskapai, and penerbangan once any exist); also a CLI |
+| `src/db/seed.ts` | `seed(db, hariIni?)` + `AKUN_DEMO`, `SANDI_DEMO`; idempotent (skips existing emails, holidays, pegawai, kota, maskapai); flights are a rolling top-up (today..today+30, `onConflictDoNothing` on nomor + tanggal, never deletes); also a CLI |
 | `src/db/dataCuti.ts` | Pure cuti seed data `buatDataCuti(tahun)` + `NIP` (dates relative to the current year); shared with tests and e2e |
-| `src/db/dataPenerbangan.ts` | Pure flight seed `buatDataPenerbangan(hariIni)` + `DEMO` (named demo routes) + `KOTA`/`MASKAPAI`: 8 cities, 4 made-up airlines, 30 days of flights; shared with tests and e2e |
+| `src/db/dataPenerbangan.ts` | Pure flight seed `buatDataPenerbangan(hariIni)` + `DEMO` (named demo routes) + `KOTA`/`MASKAPAI`: 8 cities, 4 made-up airlines, 31 days of flights (today..today+30); arrival times from the domain zone helpers; shared with tests and e2e |
 | `src/db/reset.ts` | `resetData(db)`: deletes `sesi`, `akun`, `pengajuan_cuti`, `pegawai`, `hari_libur`, `penerbangan`, `maskapai`, `kota` rows in-process and reseeds; also the `db:reset` CLI |
-| `drizzle/` | Generated SQL migrations (committed); `0002_*` adds `kota`, `maskapai`, `penerbangan` |
+| `drizzle/` | Generated SQL migrations (committed); `0002_*` adds `kota`, `maskapai`, `penerbangan`; `0003_*` adds the penerbangan CHECK constraints |
 | `drizzle.config.ts` | drizzle-kit config (SQLite, outputs to `drizzle/`) |
 
 ## apps/web (React + Vite + Tailwind)
@@ -90,9 +91,12 @@ What each file does. Update this file whenever you add, move, rename or delete a
 | `src/cuti/HalamanRiwayatCuti.tsx` | US-1b page: pegawai select (`?nip=`), history table or "Belum ada riwayat cuti" |
 | `src/cuti/HalamanSisaCuti.tsx` | US-1c page: pegawai select (`?nip=`), sisa cuti card, "Melebihi jatah" pill when negative |
 | `src/cuti/PilihPegawai.tsx` | Shared pegawai `Select` (nama + NIP) loaded from `/api/cuti/pegawai` |
-| `src/cuti/format.ts` | `formatTanggal` (id-ID, "29 Des 2026"), `formatLama`, status -> Pill variant |
-| `src/tiket/HalamanCariPenerbangan.tsx` | US-3 page `/penerbangan` (public): asal/tujuan selects + date, client + API field errors, search kept in URL `?asal=&tujuan=&tanggal=`, flight cards, "Penerbangan tidak ditemukan" with inputs kept |
-| `src/tiket/format.ts` | `formatTanggal`, `formatHarga` (Rupiah), `formatWaktu` (time + WIB/WITA/WIT), `KotaPilihan`, `HasilPenerbangan` types |
+| `src/cuti/format.ts` | `formatLama`, status -> Pill variant, `PegawaiRingkas` |
+| `src/lib/tanggal.ts` | Module-neutral date formatting (id-ID): `formatTanggal` ("29 Des 2026"), `formatTanggalDenganHari` ("Sel, 29 Des 2026"); must not import any module |
+| `src/tiket/HalamanCariPenerbangan.tsx` | US-3 page `/penerbangan` (public): form, field errors, flight cards, "Penerbangan tidak ditemukan" with inputs kept (display only; logic is in `useCariPenerbangan`) |
+| `src/tiket/useCariPenerbangan.ts` | US-3 hook: loads kota, derives the search from URL `?asal=&tujuan=&tanggal=`, validates then fetches; boundary ops `tampilkanPesan`, `tandaiKolomSalah`, `tampilkanHasil` |
+| `src/tiket/PilihKota.tsx` | Kota `Select` (label, placeholder, error) over a list loaded by the caller |
+| `src/tiket/format.ts` | `formatHarga` (Rupiah), `formatWaktu` (time + WIB/WITA/WIT) |
 | `src/shell/menu.ts` | `MENU`: single source of truth (route, grup, label, roles, phase, US) + `menuUntuk(peran)` + `kelompokMenu()` (group by `URUTAN_GRUP`) |
 | `src/shell/Layout.tsx` | Tinted L-frame: sidebar (brand, grouped nav, Reset data demo, user row + Keluar), 48px top bar (theme toggle, Masuk/Daftar), white sheet; phone: sticky 56px bar + full-screen menu sheet |
 | `src/halaman/Beranda.tsx` | Home: greeting + role menu as grouped rows, or intro + Masuk/Daftar when logged out |

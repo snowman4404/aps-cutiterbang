@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'vitest'
 import {
   cocok,
+  idKotaDariTeks,
+  memenuhiKotaBerbeda,
+  memenuhiTidakOverbooking,
   PESAN_ASAL_WAJIB,
   PESAN_KOTA_SAMA,
   PESAN_PENERBANGAN_TIDAK_DITEMUKAN,
@@ -14,6 +17,7 @@ import {
   urutkanMenurutWaktuBerangkat,
   validasiIsianPencarian,
   waktuBerangkatAbsolut,
+  waktuLokalDariInstan,
   type Kota,
   type Penerbangan,
 } from '../index.ts'
@@ -44,6 +48,26 @@ describe('waktuBerangkatAbsolut (G1)', () => {
   })
   test('format salah menghasilkan NaN', () => {
     expect(waktuBerangkatAbsolut(f({ waktuBerangkat: 'x' }))).toBeNaN()
+  })
+})
+
+describe('waktuLokalDariInstan', () => {
+  test('kebalikan instanDariWaktuLokal, termasuk pergantian tanggal', () => {
+    const instan = waktuBerangkatAbsolut(f({ asal: jayapura, waktuBerangkat: '00:00' }))
+    expect(waktuLokalDariInstan(instan, 'Asia/Jayapura')).toEqual({ tanggal: '2026-11-20', waktu: '00:00' })
+    expect(waktuLokalDariInstan(instan, 'Asia/Jakarta')).toEqual({ tanggal: '2026-11-19', waktu: '22:00' })
+  })
+})
+
+describe('invarian Penerbangan', () => {
+  test('KotaBerbeda: asal <> tujuan', () => {
+    expect(memenuhiKotaBerbeda(f())).toBe(true)
+    expect(memenuhiKotaBerbeda(f({ tujuan: jakarta }))).toBe(false)
+  })
+  test('TidakOverbooking: sisaKursi >= 0', () => {
+    expect(memenuhiTidakOverbooking(100, 100)).toBe(true)
+    expect(memenuhiTidakOverbooking(100, 101)).toBe(false)
+    expect(memenuhiTidakOverbooking(0, 0)).toBe(true)
   })
 })
 
@@ -118,6 +142,18 @@ describe('validasiIsianPencarian', () => {
       tujuan: PESAN_KOTA_SAMA,
     })
   })
+  test('3b: dibandingkan sebagai id kota, bukan teks mentah ("1" sama dengan "01")', () => {
+    expect(validasiIsianPencarian({ asal: '1', tujuan: '01', tanggal: HARI_INI }, HARI_INI)).toEqual({
+      tujuan: PESAN_KOTA_SAMA,
+    })
+    expect(validasiIsianPencarian({ asal: ' 2 ', tujuan: '2', tanggal: HARI_INI }, HARI_INI)).toEqual({
+      tujuan: PESAN_KOTA_SAMA,
+    })
+  })
+  test('idKotaDariTeks: bilangan bulat tak negatif, selain itu null', () => {
+    expect(idKotaDariTeks('01')).toBe(1)
+    expect(['', 'abc', '1.5', '-1'].map(idKotaDariTeks)).toEqual([null, null, null, null])
+  })
   test('3c: tanggal sudah lewat', () => {
     expect(validasiIsianPencarian({ asal: '1', tujuan: '2', tanggal: '2026-11-16' }, HARI_INI)).toEqual({
       tanggal: PESAN_TANGGAL_LAMPAU,
@@ -131,6 +167,6 @@ describe('validasiIsianPencarian', () => {
 })
 
 test('zona dan pesan', () => {
-  expect(['Asia/Jakarta', 'Asia/Makassar', 'Asia/Jayapura'].map(singkatanZona)).toEqual(['WIB', 'WITA', 'WIT'])
+  expect((['Asia/Jakarta', 'Asia/Makassar', 'Asia/Jayapura'] as const).map(singkatanZona)).toEqual(['WIB', 'WITA', 'WIT'])
   expect(PESAN_PENERBANGAN_TIDAK_DITEMUKAN).toBe('Penerbangan tidak ditemukan')
 })

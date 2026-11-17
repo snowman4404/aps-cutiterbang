@@ -1,0 +1,461 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "726c9f92-0c93-45a6-8ad6-9e1082a3f715",
+  "prevId": "b7500c18-03e1-4b8e-8f0a-760ba0dc3405",
+  "tables": {
+    "akun": {
+      "name": "akun",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "nama": {
+          "name": "nama",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "kata_sandi_hash": {
+          "name": "kata_sandi_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "peran": {
+          "name": "peran",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dibuat_pada": {
+          "name": "dibuat_pada",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "akun_email_unique": {
+          "name": "akun_email_unique",
+          "columns": [
+            "email"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "hari_libur": {
+      "name": "hari_libur",
+      "columns": {
+        "tanggal": {
+          "name": "tanggal",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "keterangan": {
+          "name": "keterangan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "kota": {
+      "name": "kota",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "nama": {
+          "name": "nama",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "zona_waktu": {
+          "name": "zona_waktu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "kota_nama_unique": {
+          "name": "kota_nama_unique",
+          "columns": [
+            "nama"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "maskapai": {
+      "name": "maskapai",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "nama": {
+          "name": "nama",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "maskapai_nama_unique": {
+          "name": "maskapai_nama_unique",
+          "columns": [
+            "nama"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "pegawai": {
+      "name": "pegawai",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "nama": {
+          "name": "nama",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "nomor_induk_pegawai": {
+          "name": "nomor_induk_pegawai",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "jatah_cuti_tahunan": {
+          "name": "jatah_cuti_tahunan",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "pegawai_nomor_induk_pegawai_unique": {
+          "name": "pegawai_nomor_induk_pegawai_unique",
+          "columns": [
+            "nomor_induk_pegawai"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "penerbangan": {
+      "name": "penerbangan",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "nomor_penerbangan": {
+          "name": "nomor_penerbangan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tanggal_keberangkatan": {
+          "name": "tanggal_keberangkatan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "waktu_berangkat": {
+          "name": "waktu_berangkat",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "waktu_tiba": {
+          "name": "waktu_tiba",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "harga": {
+          "name": "harga",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "jumlah_kursi": {
+          "name": "jumlah_kursi",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "maskapai_id": {
+          "name": "maskapai_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "asal_id": {
+          "name": "asal_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tujuan_id": {
+          "name": "tujuan_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "penerbangan_nomor_penerbangan_tanggal_keberangkatan_unique": {
+          "name": "penerbangan_nomor_penerbangan_tanggal_keberangkatan_unique",
+          "columns": [
+            "nomor_penerbangan",
+            "tanggal_keberangkatan"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "penerbangan_maskapai_id_maskapai_id_fk": {
+          "name": "penerbangan_maskapai_id_maskapai_id_fk",
+          "tableFrom": "penerbangan",
+          "tableTo": "maskapai",
+          "columnsFrom": [
+            "maskapai_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "penerbangan_asal_id_kota_id_fk": {
+          "name": "penerbangan_asal_id_kota_id_fk",
+          "tableFrom": "penerbangan",
+          "tableTo": "kota",
+          "columnsFrom": [
+            "asal_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "penerbangan_tujuan_id_kota_id_fk": {
+          "name": "penerbangan_tujuan_id_kota_id_fk",
+          "tableFrom": "penerbangan",
+          "tableTo": "kota",
+          "columnsFrom": [
+            "tujuan_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "penerbangan_kota_berbeda": {
+          "name": "penerbangan_kota_berbeda",
+          "value": "\"penerbangan\".\"asal_id\" <> \"penerbangan\".\"tujuan_id\""
+        },
+        "penerbangan_jumlah_kursi_tak_negatif": {
+          "name": "penerbangan_jumlah_kursi_tak_negatif",
+          "value": "\"penerbangan\".\"jumlah_kursi\" >= 0"
+        }
+      }
+    },
+    "pengajuan_cuti": {
+      "name": "pengajuan_cuti",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "pegawai_id": {
+          "name": "pegawai_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tanggal_mulai": {
+          "name": "tanggal_mulai",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tanggal_akhir": {
+          "name": "tanggal_akhir",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "pengajuan_cuti_pegawai_id_pegawai_id_fk": {
+          "name": "pengajuan_cuti_pegawai_id_pegawai_id_fk",
+          "tableFrom": "pengajuan_cuti",
+          "tableTo": "pegawai",
+          "columnsFrom": [
+            "pegawai_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "sesi": {
+      "name": "sesi",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "akun_id": {
+          "name": "akun_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "kedaluwarsa": {
+          "name": "kedaluwarsa",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sesi_akun_id_akun_id_fk": {
+          "name": "sesi_akun_id_akun_id_fk",
+          "tableFrom": "sesi",
+          "tableTo": "akun",
+          "columnsFrom": [
+            "akun_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}

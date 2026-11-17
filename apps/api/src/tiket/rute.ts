@@ -12,7 +12,11 @@ export function rutePenerbangan(db: Db, hariIni: () => TanggalIso, sekarang: () 
   r.get('/kota', async (c) => c.json(await pengendali.muatDaftarKota()))
 
   r.get('/cari', async (c) => {
-    const hasil = await pengendali.cariPenerbangan(c.req.query('asal'), c.req.query('tujuan'), c.req.query('tanggal'))
+    const hasil = await pengendali.cariPenerbangan({
+      asal: c.req.query('asal'),
+      tujuan: c.req.query('tujuan'),
+      tanggal: c.req.query('tanggal'),
+    })
     return 'galat' in hasil ? c.json(hasil, 400) : c.json(hasil)
   })
 

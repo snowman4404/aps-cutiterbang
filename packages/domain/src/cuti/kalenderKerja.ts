@@ -1,5 +1,5 @@
 // KalenderKerja: hari kerja = Senin sampai Jumat dan bukan HariLibur.
-import { hariDalamMinggu, tambahHari, type TanggalIso } from './tanggal.ts'
+import { hariDalamMinggu, tambahHari, type TanggalIso } from '../umum/tanggal.ts'
 
 /** Tanggal-tanggal HariLibur (unik). */
 export type DaftarHariLibur = readonly TanggalIso[] | ReadonlySet<TanggalIso>

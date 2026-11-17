@@ -1,5 +1,5 @@
 import { jumlahHariKerja, type DaftarHariLibur } from './kalenderKerja.ts'
-import { adalahTanggalIso, type TanggalIso } from './tanggal.ts'
+import { adalahTanggalIso, type TanggalIso } from '../umum/tanggal.ts'
 
 export type StatusPengajuanCuti = 'Diajukan' | 'Disetujui' | 'Ditolak'
 export const DAFTAR_STATUS_PENGAJUAN: readonly StatusPengajuanCuti[] = ['Diajukan', 'Disetujui', 'Ditolak']

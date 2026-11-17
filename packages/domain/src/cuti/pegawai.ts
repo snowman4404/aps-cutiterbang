@@ -1,6 +1,6 @@
 import type { DaftarHariLibur } from './kalenderKerja.ts'
 import { lamaCuti, urutkanDariPalingBaru, type PengajuanCuti } from './pengajuanCuti.ts'
-import { tahunDari, type TanggalIso } from './tanggal.ts'
+import { tahunDari, type TanggalIso } from '../umum/tanggal.ts'
 
 export interface Pegawai {
   nama: string

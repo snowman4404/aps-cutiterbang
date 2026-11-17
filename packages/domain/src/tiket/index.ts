@@ -1,4 +1,3 @@
-// Barrel modul tiket (tidak boleh mengimpor cuti). `tanggal.ts` sengaja tidak diekspor ulang:
-// itu salinan kecil pembantu tanggal agar modul ini mandiri dan namanya tidak bentrok dengan modul cuti.
+// Barrel modul tiket (tidak boleh mengimpor cuti; pembantu tanggal bersama ada di umum/).
 export * from './penerbangan.ts'
 export * from './pencarian.ts'

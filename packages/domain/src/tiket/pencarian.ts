@@ -1,8 +1,7 @@
-import { adalahTanggalValid } from './tanggal.ts'
-import { tersedia, waktuBerangkatAbsolut, type Penerbangan } from './penerbangan.ts'
+import { adalahTanggalIso, type TanggalIso } from '../umum/tanggal.ts'
+import { tersedia, waktuBerangkatAbsolut, type Kota, type Penerbangan } from './penerbangan.ts'
 
 export const PESAN_PENERBANGAN_TIDAK_DITEMUKAN = 'Penerbangan tidak ditemukan'
-
 export const PESAN_ASAL_WAJIB = 'Kota asal wajib dipilih'
 export const PESAN_TUJUAN_WAJIB = 'Kota tujuan wajib dipilih'
 export const PESAN_TANGGAL_WAJIB = 'Tanggal keberangkatan wajib diisi'
@@ -18,26 +17,49 @@ export interface IsianPencarian {
   tanggal: string
 }
 export type GalatPencarian = Partial<Record<keyof IsianPencarian, string>>
+/** Isian mentah (mis. dari query string): belum tentu string. */
+export type IsianMentah = Partial<Record<keyof IsianPencarian, unknown>>
+
+/** Satu baris hasil pencarian (`tampilkanHasil(daftarCocok)`). */
+export interface HasilPencarian {
+  id: number
+  maskapai: string
+  nomorPenerbangan: string
+  asal: Kota
+  tujuan: Kota
+  tanggalKeberangkatan: TanggalIso
+  waktuBerangkat: string
+  waktuTiba: string
+  harga: number
+  sisaKursi: number
+}
 
 const teks = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
 
+/** Isian mentah menjadi teks yang dirapikan (trim; selain string menjadi kosong). */
+export const rapikanIsian = (isian: IsianMentah): IsianPencarian => ({
+  asal: teks(isian.asal),
+  tujuan: teks(isian.tujuan),
+  tanggal: teks(isian.tanggal),
+})
+
+/** Id kota dari teks isian ("1" dan "01" sama-sama 1); null bila bukan bilangan bulat tak negatif. */
+export const idKotaDariTeks = (isian: string): number | null => (/^\d+$/.test(isian) ? Number(isian) : null)
+
 /**
  * validasiIsian(asal, tujuan, tanggal) (alur 3a, 3b, 3c US-3). Kosong = valid.
- * `hariIni` = tanggal hari ini menurut WIB; tanggal yang sama dengan hari ini diperbolehkan.
+ * 3b membandingkan id kota yang sudah di-parse, bukan teks mentah. `hariIni` = tanggal hari ini menurut WIB;
+ * tanggal yang sama dengan hari ini diperbolehkan.
  */
-export function validasiIsianPencarian(
-  isian: Partial<Record<keyof IsianPencarian, unknown>>,
-  hariIni: string,
-): GalatPencarian {
+export function validasiIsianPencarian(isian: IsianMentah, hariIni: TanggalIso): GalatPencarian {
   const galat: GalatPencarian = {}
-  const asal = teks(isian.asal)
-  const tujuan = teks(isian.tujuan)
-  const tanggal = teks(isian.tanggal)
+  const { asal, tujuan, tanggal } = rapikanIsian(isian)
+  const idAsal = idKotaDariTeks(asal)
   if (!asal) galat.asal = PESAN_ASAL_WAJIB
   if (!tujuan) galat.tujuan = PESAN_TUJUAN_WAJIB
-  else if (asal && asal === tujuan) galat.tujuan = PESAN_KOTA_SAMA
+  else if (idAsal !== null && idAsal === idKotaDariTeks(tujuan)) galat.tujuan = PESAN_KOTA_SAMA
   if (!tanggal) galat.tanggal = PESAN_TANGGAL_WAJIB
-  else if (!adalahTanggalValid(tanggal)) galat.tanggal = PESAN_FORMAT_TANGGAL_KEBERANGKATAN
+  else if (!adalahTanggalIso(tanggal)) galat.tanggal = PESAN_FORMAT_TANGGAL_KEBERANGKATAN
   else if (tanggal < hariIni) galat.tanggal = PESAN_TANGGAL_LAMPAU
   return galat
 }

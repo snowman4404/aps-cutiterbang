@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { panggil } from '../akses/api.ts'
 import { Alert, DataTable, EmptyState, PageTitle } from '../ui/index.ts'
-import { formatLama, formatTanggal, type PegawaiRingkas } from './format.ts'
+import { formatTanggal } from '../lib/tanggal.ts'
+import { formatLama, type PegawaiRingkas } from './format.ts'
 import { PilihPegawai } from './PilihPegawai.tsx'
 
 interface Riwayat {

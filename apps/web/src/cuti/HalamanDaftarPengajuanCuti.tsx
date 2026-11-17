@@ -3,7 +3,8 @@ import type { FormEvent } from 'react'
 import { validasiPeriode, type GalatPeriode, type StatusPengajuanCuti } from '@cutiterbang/domain'
 import { panggil } from '../akses/api.ts'
 import { Alert, Button, Card, DataTable, EmptyState, Field, Input, PageTitle, Pill } from '../ui/index.ts'
-import { formatLama, formatTanggal, VARIAN_STATUS } from './format.ts'
+import { formatTanggal } from '../lib/tanggal.ts'
+import { formatLama, VARIAN_STATUS } from './format.ts'
 
 interface Pengajuan {
   id: number
