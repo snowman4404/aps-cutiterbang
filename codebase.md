@@ -7,8 +7,7 @@ What each file does. Update this file whenever you add, move, rename or delete a
 | File | Purpose |
 |---|---|
 | `package.json` | Workspace root; scripts for dev (both servers), `build` (web), `start` (API, which also serves the built web when `apps/web/dist` exists), test, `test:e2e` (default Playwright project), `test:visual` (screenshots), db |
-| `render.yaml` | Render Blueprint: one free Node web service from the GitHub repo (`npm ci --include=dev && npm run build`, `npm start`, health `/api/health`), env `NODE_ENV=production`, `IZINKAN_RESET=1` (simulator + reset on the public demo), `RESET_SAAT_MULAI=1` |
-| `README.md` | Run instructions, commands, demo accounts, demo search cases, simulator demo, Render deploy steps |
+| `README.md` | Run instructions, commands, demo accounts, demo search cases, simulator demo |
 | `vitest.config.ts` | Vitest: picks up `*.test.ts` in `packages/` and `apps/*/src/`; 30 s test / 60 s hook timeouts (API tests seed ~1,500 flights and hash with scrypt per test) |
 | `playwright.config.ts` | Playwright: Chromium, serial (`workers: 1`, shared DB), starts API (8787) and web (5173); projects `chromium` (ignores `visual.spec.ts`) and `visual` (only `visual.spec.ts`) |
 | `docs/spesifikasi.md` | Full assignment spec (use cases, domain model, diagrams) |
@@ -85,7 +84,7 @@ What each file does. Update this file whenever you add, move, rename or delete a
 
 | File | Purpose |
 |---|---|
-| `src/index.ts` | Server entry: `buatDb`, run migrations, then `resetData` when `RESET_SAAT_MULAI=1` (deploy) else the idempotent `seed`; serves `buatApp(db)` on `PORT` (default 8787), wrapped by `denganWeb` when `apps/web/dist/index.html` exists (production: one Node service) |
+| `src/index.ts` | Server entry: `buatDb`, run migrations, then `resetData` when `RESET_SAAT_MULAI=1` (optional reseed on start) else the idempotent `seed`; serves `buatApp(db)` on `PORT` (default 8787), wrapped by `denganWeb` when `apps/web/dist/index.html` exists (production: one Node service) |
 | `src/sajikanWeb.ts` | `denganWeb(api, dirWeb)`: `/api/*` to the API (unknown API paths stay 404), static files of the web build, SPA fallback to `index.html` for every other GET |
 | `src/sajikanWeb.test.ts` | Tests for `denganWeb` on a temp dist folder: API passthrough, static asset, SPA routes get `index.html`, unknown `/api` path 404 |
 | `src/app.ts` | `buatApp(db, { hariIni?, sekarang?, lingkungan? })`: Hono app under `/api`; `GET /health` (incl. `resetAktif`), `/auth`, `/cuti`, `/penerbangan`, `/pemesanan`, `/travel`, `/tiket-dipesankan`, `/profil`, `/validasi-tiket`, `POST /dev/reset` (404 in production unless `IZINKAN_RESET=1`; `resetDiizinkan(lingkungan)`) |

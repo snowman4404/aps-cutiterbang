@@ -28,7 +28,7 @@ Buka http://localhost:5173. API berjalan di port 8787; Vite meneruskan `/api` ke
 | `npm run test:visual` | Tangkapan layar tinjauan gaya (terang, gelap, 1440 px dan 390 px) ke `.taste-skill/app-shots/` |
 | `npm run typecheck` | Pemeriksaan tipe semua workspace |
 | `npm run db:reset` | Bangun ulang basis data dari migrasi dan seed |
-| `npm run build` lalu `npm start` | Mode produksi: satu layanan Node di port 8787 yang menyajikan API dan web sekaligus |
+| `npm run build` lalu `npm start` | Mode produksi lokal: satu proses Node di http://localhost:8787 yang menyajikan API dan web sekaligus |
 
 ## Akun demo
 
@@ -67,22 +67,7 @@ Pembayaran, konfirmasi maskapai dan layanan email berada di luar lingkup aplikas
 - kotak keluar email e-tiket;
 - tombol **Reset data demo** untuk mengembalikan semua data ke seed (semua pengguna ikut keluar).
 
-Simulator dan reset aktif di luar produksi. Saat `NODE_ENV=production` keduanya mati, kecuali `IZINKAN_RESET=1`.
-
-## Deploy ke Render (dari GitHub)
-
-GitHub Pages hanya menyajikan berkas statis, sedangkan aplikasi ini butuh server Node dan SQLite. Karena itu kode tetap di GitHub dan [Render](https://render.com) menjalankannya langsung dari repo. Konfigurasinya ada di [render.yaml](render.yaml).
-
-1. Push repo ini ke GitHub (cabang `master`).
-2. Masuk ke https://dashboard.render.com dengan akun GitHub.
-3. Pilih **New → Blueprint**, pilih repo ini, lalu **Apply**. Render menjalankan `npm ci --include=dev && npm run build`, lalu `npm start`.
-4. Setelah build selesai (beberapa menit), aplikasi tersedia di `https://cutiterbang.onrender.com` (atau nama lain bila nama itu sudah dipakai). Setiap push ke `master` memicu deploy ulang.
-
-Yang perlu diketahui tentang paket gratis Render:
-
-- Layanan tidur setelah 15 menit tanpa pengunjung; permintaan pertama sesudahnya butuh sekitar 30 detik.
-- Disknya tidak permanen. `RESET_SAAT_MULAI=1` mengembalikan data ke seed setiap kali server mulai, sehingga tanggal penerbangan dan pemesanan demo selalu relatif terhadap hari itu.
-- `IZINKAN_RESET=1` menyalakan simulator dan tombol reset di situs publik supaya alur demo bisa dicoba.
+Simulator dan reset selalu aktif saat dijalankan secara lokal. Hanya bila `NODE_ENV=production` keduanya mati, kecuali `IZINKAN_RESET=1`.
 
 ## Struktur
 

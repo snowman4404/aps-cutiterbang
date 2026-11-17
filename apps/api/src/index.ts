@@ -10,7 +10,7 @@ import { denganWeb } from './sajikanWeb.ts'
 
 const db = buatDb()
 await jalankanMigrasi(db)
-// Deploy demo: RESET_SAAT_MULAI=1 mengembalikan data ke seed tiap kali server mulai (tanggal seed relatif ke hari ini).
+// Opsional: RESET_SAAT_MULAI=1 mengembalikan data ke seed tiap kali server mulai (tanggal seed relatif ke hari ini).
 if (process.env.RESET_SAAT_MULAI === '1') await resetData(db)
 else await seed(db) // idempoten: hanya mengisi yang belum ada
 
