@@ -7,8 +7,11 @@ import HalamanDaftarPengajuanCuti from './cuti/HalamanDaftarPengajuanCuti.tsx'
 import HalamanRiwayatCuti from './cuti/HalamanRiwayatCuti.tsx'
 import HalamanSisaCuti from './cuti/HalamanSisaCuti.tsx'
 import HalamanCariPenerbangan from './tiket/HalamanCariPenerbangan.tsx'
+import HalamanMultiDestinasi from './tiket/HalamanMultiDestinasi.tsx'
 import HalamanPemesanan from './tiket/HalamanPemesanan.tsx'
+import HalamanProfil from './tiket/HalamanProfil.tsx'
 import HalamanTiketSaya from './tiket/HalamanTiketSaya.tsx'
+import HalamanValidasiTiket from './tiket/HalamanValidasiTiket.tsx'
 import Beranda from './halaman/Beranda.tsx'
 import Placeholder from './halaman/Placeholder.tsx'
 import Layout from './shell/Layout.tsx'
@@ -20,7 +23,10 @@ const HALAMAN: Record<string, ReactNode> = {
   '/cuti/riwayat': <HalamanRiwayatCuti />,
   '/cuti/sisa': <HalamanSisaCuti />,
   '/penerbangan': <HalamanCariPenerbangan />,
+  '/penerbangan/multi': <HalamanMultiDestinasi />,
   '/tiket-saya': <HalamanTiketSaya />,
+  '/profil': <HalamanProfil />,
+  '/validasi-tiket': <HalamanValidasiTiket />,
 }
 
 export const router = createBrowserRouter([

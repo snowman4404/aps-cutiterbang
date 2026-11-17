@@ -114,5 +114,7 @@ export function useCariPenerbangan() {
     sibuk,
     // Hasil yang basi (dari pencarian sebelumnya) disembunyikan selama kolom ditandai salah.
     hasil: adaGalat(galat) ? null : hasil,
+    /** Berubah setiap pencarian baru (URL berubah); dipakai untuk mengatur ulang keadaan alat hasil. */
+    kunciPencarian: kunciUrl,
   }
 }

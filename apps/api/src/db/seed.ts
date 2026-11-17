@@ -7,8 +7,9 @@ import { buatDb, type Db } from './client.ts'
 import { dijalankanLangsung } from './cli.ts'
 import { buatDataCuti } from './dataCuti.ts'
 import { buatDataPemesanan } from './dataPemesanan.ts'
+import { PROFIL_DEMO } from './dataProfil.ts'
 import { buatDataPenerbangan } from './dataPenerbangan.ts'
-import { akun, alokasiKursi, hariLibur, kota, maskapai, pegawai, pemesanan, pengajuanCuti, penerbangan, penumpang } from './schema.ts'
+import { akun, alokasiKursi, etiket, hariLibur, kota, maskapai, pegawai, pemesanan, pengajuanCuti, penerbangan, penumpang, profil } from './schema.ts'
 
 // `hariIni` bisa disuntik (tes); tanggal data cuti dihitung dari tahunnya, tanggal penerbangan dari hari ini.
 export async function seed(db: Db, hariIni = hariIniWib()) {
@@ -19,6 +20,7 @@ export async function seed(db: Db, hariIni = hariIniWib()) {
     .onConflictDoNothing({ target: akun.email })
   await seedCuti(db, tahunDari(hariIni))
   await seedPenerbangan(db, hariIni)
+  await seedProfil(db)
   await seedPemesanan(db, hariIni)
 }
 
@@ -64,9 +66,17 @@ async function seedPenerbangan(db: Db, hariIni: string) {
   }
 }
 
+// Profil demo (lihat dataProfil.ts): hanya dibuat bila akunnya belum punya Profil, jadi perubahan pengguna tidak ditimpa.
+async function seedProfil(db: Db) {
+  const idAkun = new Map((await db.select({ id: akun.id, email: akun.email }).from(akun)).map((akunBaris) => [akunBaris.email, akunBaris.id]))
+  const baris = Object.entries(PROFIL_DEMO).flatMap(([email, data]) => (idAkun.has(email) ? [{ akunId: idAkun.get(email)!, ...data }] : []))
+  if (baris.length > 0) await db.insert(profil).values(baris).onConflictDoNothing({ target: profil.akunId })
+}
+
 // Pemesanan demo (lihat dataPemesanan.ts): idempoten per kode normal, jadi pemesanan yang sudah ada (mis. yang
 // sudah dibatalkan pengguna) tidak ditimpa. Tiap pemesanan masuk lewat satu batch bersama Penumpang dan, bila
-// belum Cancelled, AlokasiKursi-nya (sisaKursi berkurang). Tidak ada yang Confirmed (ETiket baru di Fase 6).
+// belum Cancelled, AlokasiKursi-nya (sisaKursi berkurang). Pemesanan Confirmed ikut membawa satu ETiket
+// (inv ConfirmedPunyaETiket); simulator konfirmasi maskapai dan email baru di Fase 6.
 async function seedPemesanan(db: Db, hariIni: string) {
   const sudahAda = new Set((await db.select({ kodeNormal: pemesanan.kodeNormal }).from(pemesanan)).map((baris) => baris.kodeNormal))
   const idAkun = new Map((await db.select({ id: akun.id, email: akun.email }).from(akun)).map((akunBaris) => [akunBaris.email, akunBaris.id]))
@@ -94,6 +104,15 @@ async function seedPemesanan(db: Db, hariIni: string) {
         ...data.penumpang,
       }),
       ...(data.status === STATUS_DIBATALKAN ? [] : [db.insert(alokasiKursi).values({ penerbanganId: terbang.id, kodeNormal, jumlah: 1 })]),
+      ...(data.status === 'Confirmed'
+        ? [
+            db.insert(etiket).values({
+              pemesananId: sql`(select id from pemesanan where kode_normal = ${kodeNormal})`,
+              nomorETiket: `ET-${data.kode}`,
+              waktuTerbit: new Date(data.waktuDibuat + 3_600_000),
+            }),
+          ]
+        : []),
     ])
   }
 }

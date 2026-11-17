@@ -1,18 +1,20 @@
 import type { FormEvent } from 'react'
-import { PESAN_PENERBANGAN_TIDAK_DITEMUKAN, punyaPeran } from '@cutiterbang/domain'
+import { punyaPeran } from '@cutiterbang/domain'
 import { useAuth } from '../akses/AuthContext.tsx'
-import { formatTanggalDenganHari } from '../lib/tanggal.ts'
-import { Alert, Button, Card, EmptyState, Field, Input, LinkTombol, PageTitle } from '../ui/index.ts'
-import { formatHarga, formatWaktu } from './format.ts'
+import { Alert, Button, Card, Field, Input, LinkTombol, PageTitle } from '../ui/index.ts'
+import { HasilAlatMember } from './HasilAlatMember.tsx'
+import { DaftarPenerbangan } from './KartuPenerbangan.tsx'
 import { PilihKota } from './PilihKota.tsx'
 import { useCariPenerbangan } from './useCariPenerbangan.ts'
 
-// US-3: Formulir Pencarian + Halaman Hasil Pencarian (tanpa login). Pengambilan data dan sinkronisasi URL
+// US-3: Formulir Pencarian + Halaman Hasil Pencarian (tanpa login). Member juga mendapat alat US-6a/6b/6c (`HasilAlatMember`). Pengambilan data dan sinkronisasi URL
 // ada di `useCariPenerbangan`; halaman ini hanya menampilkan.
 export default function HalamanCariPenerbangan() {
-  const { kota, pesanKota, isian, ubahIsian, cari, galat, pesan, sibuk, hasil } = useCariPenerbangan()
+  const { kota, pesanKota, isian, ubahIsian, cari, galat, pesan, sibuk, hasil, kunciPencarian } = useCariPenerbangan()
   const { akun, memuat } = useAuth()
   // Pesan hanya untuk yang belum login atau berperan CalonPenumpang (Member juga); peran lain tidak memesan tiket.
+  // US-6a/6b/6c: alat saring jam, urutkan harga dan bandingkan hanya untuk Member yang sudah masuk (G12).
+  const adalahMember = !memuat && akun?.peran === 'MemberFrequentTraveller'
   const bolehPesan = !memuat && (akun === null || punyaPeran(akun.peran, ['CalonPenumpang']))
 
   function kirimPencarian(event: FormEvent) {
@@ -61,45 +63,20 @@ export default function HalamanCariPenerbangan() {
       {pesanKota && <Alert varian="negative">{pesanKota}</Alert>}
       {pesan && <Alert varian="negative">{pesan}</Alert>}
       {hasil &&
-        (hasil.length === 0 ? (
-          <EmptyState>{PESAN_PENERBANGAN_TIDAK_DITEMUKAN}</EmptyState>
+        (adalahMember ? (
+          <HasilAlatMember key={kunciPencarian} hasil={hasil} />
         ) : (
-          <ul aria-label="Hasil pencarian penerbangan" className="flex flex-col gap-3">
-            {hasil.map((penerbangan) => (
-              <li key={penerbangan.id} data-testid="penerbangan">
-                <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex flex-col gap-1">
-                    <span className="font-medium text-ink">{penerbangan.maskapai}</span>
-                    <span className="text-sm text-muted num">{penerbangan.nomorPenerbangan}</span>
-                    <span className="text-sm text-muted">{formatTanggalDenganHari(penerbangan.tanggalKeberangkatan)}</span>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-sm text-muted">
-                      {penerbangan.asal.nama} → {penerbangan.tujuan.nama}
-                    </span>
-                    <span className="text-ink num">
-                      <span data-testid="berangkat">{formatWaktu(penerbangan.waktuBerangkat, penerbangan.asal.zonaWaktu)}</span>
-                      {' → '}
-                      <span data-testid="tiba">{formatWaktu(penerbangan.waktuTiba, penerbangan.tujuan.zonaWaktu)}</span>
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-1 sm:items-end">
-                    <span className="font-medium text-ink num" data-testid="harga">
-                      {formatHarga(penerbangan.harga)}
-                    </span>
-                    <span className="text-sm text-muted num" data-testid="sisa-kursi">
-                      Sisa {penerbangan.sisaKursi} kursi
-                    </span>
-                  </div>
-                  {bolehPesan && (
-                    <LinkTombol to={`/pesan/${penerbangan.id}`} varian="primary" ukuran="sm" aria-label={`Pesan ${penerbangan.nomorPenerbangan}`}>
-                      Pesan
-                    </LinkTombol>
-                  )}
-                </Card>
-              </li>
-            ))}
-          </ul>
+          <DaftarPenerbangan
+            daftar={hasil}
+            label="Hasil pencarian penerbangan"
+            aksi={(penerbangan) =>
+              bolehPesan && (
+                <LinkTombol to={`/pesan/${penerbangan.id}`} varian="primary" ukuran="sm" aria-label={`Pesan ${penerbangan.nomorPenerbangan}`}>
+                  Pesan
+                </LinkTombol>
+              )
+            }
+          />
         ))}
     </section>
   )

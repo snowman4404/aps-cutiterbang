@@ -154,4 +154,46 @@ export const alokasiKursi = sqliteTable(
   ],
 )
 
+// Profil (komposisi pada Member atau Pengunjung, satu per akun): DataWajib dengan kolom boleh kosong (NULL, US-5a AC5).
+// Format tersimpan valid (inv FormatTersimpanValid) dijaga domain (validasiProfil); status /statusProfil diturunkan, tidak disimpan.
+export const profil = sqliteTable('profil', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  akunId: integer('akun_id')
+    .notNull()
+    .unique()
+    .references(() => akun.id),
+  namaLengkap: text('nama_lengkap'),
+  nomorIdentitas: text('nomor_identitas'),
+  tanggalLahir: text('tanggal_lahir'),
+  nomorTelepon: text('nomor_telepon'),
+  email: text('email'),
+})
+
+// ETiket minimal (Fase 5): satu per Pemesanan (UNIQUE). Ada hanya setelah Confirmed (inv ConfirmedPunyaETiket dan
+// ETiketHanyaSetelahConfirmed); tetap ada bila Pemesanan Confirmed kemudian Cancelled (G5). Simulator dan email: Fase 6.
+export const etiket = sqliteTable('etiket', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  pemesananId: integer('pemesanan_id')
+    .notNull()
+    .unique()
+    .references(() => pemesanan.id),
+  nomorETiket: text('nomor_e_tiket').notNull().unique(),
+  waktuTerbit: integer('waktu_terbit', { mode: 'timestamp_ms' }).notNull(),
+})
+
+// MemberFrequentTraveller.perjalananTercatat: himpunan (UNIQUE akun + pemesanan = US-5b AC8). G8: C3 menghapus barisnya saat pembatalan.
+export const perjalananTercatat = sqliteTable(
+  'perjalanan_tercatat',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    akunId: integer('akun_id')
+      .notNull()
+      .references(() => akun.id),
+    pemesananId: integer('pemesanan_id')
+      .notNull()
+      .references(() => pemesanan.id),
+  },
+  (tabel) => [unique().on(tabel.akunId, tabel.pemesananId)],
+)
+
 export type Akun = typeof akun.$inferSelect

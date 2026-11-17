@@ -49,13 +49,19 @@ Phases run in order: each one builds on the data and screens of the one before. 
 - [x] US-2b Membatalkan pemesanan (contract C3)
 
 ## Phase 5: Member Frequent Traveller
-- [ ] `Profil` (DataWajib, `/statusProfil`) for Member and Pengunjung; Daftar as Member creates an empty Profil; seed profiles for demo Members and Pengunjung
-- [ ] US-5a Memperbarui data profil (`Profil`, `/statusProfil`)
-- [ ] US-5b Memvalidasi tiket (`catatPerjalanan`); G8: C3 unlinks a cancelled booking from `perjalananTercatat`
-- [ ] US-4 Mencari penerbangan multi-destinasi
-- [ ] US-6a Menyaring hasil pencarian berdasarkan jam keberangkatan
-- [ ] US-6b Membandingkan harga penerbangan
-- [ ] US-6c Memesan penerbangan dari tampilan perbandingan (includes US-2a)
+**Decided (2026-11-17):**
+- Confirmed bookings for US-5b: a minimal `ETiket` (one per Pemesanan) lands now, and Confirmed demo bookings are seeded with their ETiket, so `ConfirmedPunyaETiket` holds. Phase 6 adds the airline-confirmation simulator and email on top.
+- US-6a/6b/6c tools (hour filter, price sort, compare, book from comparison) appear on the US-3 search page only for a logged-in Member Frequent Traveller.
+- Applying the US-6a hour filter unselects compared flights it hides (not restored when the filter is cleared), so the count and the 3-flight limit cover only visible flights.
+- The US-5b page also lists the Member's recorded trips (perjalananTercatat), so 8a and G8 are visible in the demo.
+- Messages the spec gives no exact text for reuse the spec's own condition phrase: US-5b 2a "Kolom kode kosong", US-6a 3a "Jam awal atau jam akhir kosong", US-4 segment-count guard "Maksimal 5 segmen, minimal 2 segmen".
+- [x] `Profil` (DataWajib, `/statusProfil`) for Member and Pengunjung; Daftar as Member creates an empty Profil; seed profiles for demo Members and Pengunjung
+- [x] US-5a Memperbarui data profil (`Profil`, `/statusProfil`)
+- [x] US-5b Memvalidasi tiket (`catatPerjalanan`); G8: C3 unlinks a cancelled booking from `perjalananTercatat`
+- [x] US-4 Mencari penerbangan multi-destinasi
+- [x] US-6a Menyaring hasil pencarian berdasarkan jam keberangkatan
+- [x] US-6b Membandingkan harga penerbangan
+- [x] US-6c Memesan penerbangan dari tampilan perbandingan (includes US-2a)
 
 ## Phase 6: Manajer Travel and Pengunjung
 **Decision:** G7 (block picking the same pengunjung twice in one booking?)

@@ -6,6 +6,7 @@ import { resetData, tabelSkema, urutanHapus } from './reset.ts'
 import {
   akun,
   alokasiKursi,
+  etiket,
   hariLibur,
   kota,
   maskapai,
@@ -14,6 +15,8 @@ import {
   pengajuanCuti,
   penerbangan,
   penumpang,
+  perjalananTercatat,
+  profil,
   sesi,
 } from './schema.ts'
 import { seed } from './seed.ts'
@@ -91,6 +94,9 @@ async function sisipkanBarisPenanda() {
     email: 'penanda@contoh.test',
   })
   await db.insert(alokasiKursi).values({ penerbanganId: penerbanganBaru.id, kodeNormal: 'penanda', jumlah: 1 })
+  await db.insert(profil).values({ akunId: akunBaru.id })
+  await db.insert(etiket).values({ pemesananId: pemesananBaru.id, nomorETiket: 'ET-PENANDA', waktuTerbit: new Date() })
+  await db.insert(perjalananTercatat).values({ akunId: akunBaru.id, pemesananId: pemesananBaru.id })
 }
 
 describe('resetData', () => {
@@ -112,6 +118,10 @@ describe('resetData', () => {
     expect(nama.indexOf('pemesanan')).toBeLessThan(nama.indexOf('penerbangan'))
     expect(nama.indexOf('pemesanan')).toBeLessThan(nama.indexOf('akun'))
     expect(nama.indexOf('alokasi_kursi')).toBeLessThan(nama.indexOf('penerbangan'))
+    expect(nama.indexOf('etiket')).toBeLessThan(nama.indexOf('pemesanan'))
+    expect(nama.indexOf('perjalanan_tercatat')).toBeLessThan(nama.indexOf('pemesanan'))
+    expect(nama.indexOf('perjalanan_tercatat')).toBeLessThan(nama.indexOf('akun'))
+    expect(nama.indexOf('profil')).toBeLessThan(nama.indexOf('akun'))
   })
 
   test('setelah reset setiap tabel hanya berisi baris seed; baris non-seed di tabel mana pun hilang', async () => {

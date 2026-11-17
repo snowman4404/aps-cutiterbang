@@ -137,7 +137,7 @@ test.describe('US-2a Memesan tiket', () => {
     await expect(baru.getByTestId('berangkat')).toHaveText(`${f.waktuBerangkat} ${zona(asal)}`)
     await expect(baru.getByTestId('tiba')).toHaveText(`${f.waktuTiba} ${zona(tujuan)}`)
     await expect(baru.getByTestId('harga')).toHaveText(RUPIAH.format(f.harga))
-    await expect(page.getByTestId('tiket')).toHaveCount(3) // dua pemesanan seed + yang baru
+    await expect(page.getByTestId('tiket')).toHaveCount(4) // tiga pemesanan seed + yang baru
 
     // Sisa kursi di pencarian berkurang 1.
     await isiDanCari(page, asal, tujuan, tanggal)
@@ -164,7 +164,7 @@ test.describe('US-2a Memesan tiket', () => {
     await expect(page.getByRole('heading', { name: 'Ringkasan pemesanan' })).toHaveCount(0)
 
     await page.goto('/tiket-saya')
-    await expect(page.getByTestId('tiket')).toHaveCount(2) // hanya pemesanan seed
+    await expect(page.getByTestId('tiket')).toHaveCount(3) // hanya pemesanan seed
     await isiDanCari(page, asal, tujuan, tambahHari(HARI_INI, hariKe))
     await expect(sisaKursiDiHasil(page, f.nomorPenerbangan)).toHaveText(`Sisa ${f.jumlahKursi} kursi`)
   })
@@ -197,7 +197,7 @@ test.describe('US-2a Memesan tiket', () => {
     await expect(page.getByRole('button', { name: 'Konfirmasi pemesanan' })).toHaveCount(0)
 
     await page.goto('/tiket-saya')
-    await expect(page.getByTestId('tiket')).toHaveCount(2)
+    await expect(page.getByTestId('tiket')).toHaveCount(3)
   })
 
   test('penerbangan yang sudah habis dari awal: formulir tetap tampil; "Kursi sudah habis" baru setelah Konfirmasi (7b)', async ({ page, request }) => {
@@ -219,7 +219,7 @@ test.describe('US-2a Memesan tiket', () => {
     await expect(page.getByRole('button', { name: 'Konfirmasi pemesanan' })).toHaveCount(0)
 
     await page.goto('/tiket-saya')
-    await expect(page.getByTestId('tiket')).toHaveCount(2) // tidak ada pemesanan baru
+    await expect(page.getByTestId('tiket')).toHaveCount(3) // tidak ada pemesanan baru
   })
 
   test('tombol Pesan di hasil pencarian: tampil untuk yang belum login dan penumpang; tidak untuk HRD, Manajer Travel, Pengunjung', async ({ page }) => {
@@ -273,7 +273,7 @@ test.describe('US-2a Memesan tiket', () => {
     await page.getByRole('button', { name: 'Konfirmasi pemesanan' }).click()
     await expect(page).toHaveURL(/\/tiket-saya\?baru=/)
     await expect(page.locator('[data-testid="tiket"][data-baru="true"]').getByTestId('status')).toHaveText('Waiting for the payment')
-    await expect(page.getByTestId('tiket')).toHaveCount(2) // CTB003 seed + yang baru
+    await expect(page.getByTestId('tiket')).toHaveCount(3) // CTB003 dan CTB005 seed + yang baru
   })
 })
 
@@ -286,7 +286,7 @@ test.describe('US-2b Membatalkan pemesanan', () => {
   test('Tiket Saya: aksi batal hanya pada pemesanan yang dapat dibatalkan', async ({ page }) => {
     await masuk(page, 'penumpang@cutiterbang.test')
     await page.goto('/tiket-saya')
-    await expect(page.getByTestId('tiket')).toHaveCount(2)
+    await expect(page.getByTestId('tiket')).toHaveCount(3)
     await expect(page.getByTestId('tiket').first()).toHaveAttribute('data-kode', 'CTB001') // terbaru dulu
     await expect(kartu(page, 'CTB001').getByTestId('status')).toHaveText('Waiting for the payment')
     await expect(kartu(page, 'CTB001').getByRole('button', { name: /Batalkan/ })).toBeVisible()
@@ -349,7 +349,7 @@ test.describe('US-2b Membatalkan pemesanan', () => {
     await page.setViewportSize({ width: 375, height: 800 })
     await masuk(page, 'penumpang@cutiterbang.test')
     await page.goto('/tiket-saya')
-    await expect(page.getByTestId('tiket')).toHaveCount(2)
+    await expect(page.getByTestId('tiket')).toHaveCount(3)
     const lebih = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
     expect(lebih).toBeLessThanOrEqual(0)
     await kartu(page, 'CTB001').getByRole('button', { name: /Batalkan/ }).click()

@@ -10,7 +10,7 @@ import {
   type StatusBooking,
 } from '@cutiterbang/domain'
 import type { Db } from '../db/client.ts'
-import { alokasiKursi, pemesanan, penumpang } from '../db/schema.ts'
+import { alokasiKursi, pemesanan, penumpang, perjalananTercatat } from '../db/schema.ts'
 
 export interface PenumpangBaris extends DataWajib {
   /** Peran `mewakili`: selalu terisi (C1 dan C2 selalu mencatatnya). */
@@ -112,7 +112,8 @@ export function antarmukaPemesanan(db: Db) {
 
     /**
      * batalkan (kontrak C3, langkah 5-6): status menjadi Cancelled dan alokasi kursinya dilepas
-     * (kejadian domain PemesananDibatalkan), dalam satu batch. false bila pemesanan sudah Cancelled atau tidak ada.
+     * (kejadian domain PemesananDibatalkan), dalam satu batch; G8: perjalanan yang tercatat untuk pemesanan ini
+     * (perjalananTercatat semua member) ikut dihapus. ETiket tidak disentuh (G5). false bila pemesanan sudah Cancelled atau tidak ada.
      */
     async batalkan(kode: string): Promise<boolean> {
       const kodeNormal = normalKode(kode)
@@ -127,8 +128,23 @@ export function antarmukaPemesanan(db: Db) {
           .where(
             sql`${alokasiKursi.kodeNormal} = ${kodeNormal} AND EXISTS (SELECT 1 FROM pemesanan WHERE kode_normal = ${kodeNormal} AND status = ${STATUS_DIBATALKAN})`,
           ),
+        db
+          .delete(perjalananTercatat)
+          .where(
+            inArray(
+              perjalananTercatat.pemesananId,
+              db.select({ id: pemesanan.id }).from(pemesanan).where(and(eq(pemesanan.kodeNormal, kodeNormal), eq(pemesanan.status, STATUS_DIBATALKAN))),
+            ),
+          ),
       ])
       return hasil[0].rowsAffected > 0
+    },
+
+    /** Pemesanan menurut id (urutan mengikuti `ids`); dipakai perjalananTercatat. */
+    async denganId(ids: number[]): Promise<PemesananBaris[]> {
+      if (ids.length === 0) return []
+      const lengkap = await lengkapi(await db.select().from(pemesanan).where(inArray(pemesanan.id, ids)))
+      return ids.flatMap((id) => lengkap.filter((b) => b.id === id))
     },
 
     /** cariDenganKode: kode dicocokkan lewat normal() (tanpa membedakan kapital dan spasi tepi). */

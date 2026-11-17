@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { useLocation, useNavigate, useParams } from 'react-router'
 import {
   hariIniWib,
   PESAN_DATA_PENUMPANG_TIDAK_LENGKAP,
@@ -17,18 +17,9 @@ import { panggil } from '../lib/api.ts'
 import { formatTanggal } from '../lib/tanggal.ts'
 import { useAksi } from '../lib/useAksi.ts'
 import { PESAN_GALAT_UMUM, useMuat } from '../lib/useMuat.ts'
-import { Alert, Button, Card, Field, Input, JudulBagian, LinkTombol, Memuat, PageTitle } from '../ui/index.ts'
+import { Alert, Button, Card, JudulBagian, LinkTombol, Memuat, PageTitle } from '../ui/index.ts'
+import { KOLOM, KolomFormulirDataWajib, type IsianDataWajib } from './FormulirDataWajib.tsx'
 import { InfoPenerbangan } from './InfoPenerbangan.tsx'
-
-type Isian = Record<KolomDataWajib, string>
-
-const KOLOM: { nama: KolomDataWajib; label: string; petunjuk?: string; jenis?: string; mode?: 'numeric' }[] = [
-  { nama: 'namaLengkap', label: 'Nama lengkap', petunjuk: 'Sesuai kartu identitas, maksimal 100 karakter' },
-  { nama: 'nomorIdentitas', label: 'Nomor identitas', petunjuk: '16 digit', mode: 'numeric' },
-  { nama: 'tanggalLahir', label: 'Tanggal lahir', jenis: 'date' },
-  { nama: 'nomorTelepon', label: 'Nomor telepon', petunjuk: '10 sampai 13 digit', jenis: 'tel', mode: 'numeric' },
-  { nama: 'email', label: 'Email', jenis: 'email' },
-]
 
 // US-2a di sisi web (boundary Halaman Pemesanan): formulir data penumpang wajib (langkah 3-4), ringkasan (5),
 // konfirmasi (6), lalu ke Tiket Saya (10). Validasi memakai fungsi domain yang sama dengan API (7, 7a); 7b = 409.
@@ -38,9 +29,12 @@ export default function HalamanPemesanan() {
   const { idPenerbangan } = useParams()
   const { akun } = useAuth()
   const navigate = useNavigate()
+  // US-6c 4a: dibuka dari tampilan perbandingan; hanya alamat /penerbangan internal yang diterima.
+  const asal = (useLocation().state as { kembali?: unknown } | null)?.kembali
+  const kembali = typeof asal === 'string' && asal.startsWith('/penerbangan') ? asal : null
   const { data, galat: galatMuat, memuat } = useMuat<{ penerbangan: InformasiPenerbangan }>(`/penerbangan/${idPenerbangan}`)
 
-  const [isian, setIsian] = useState<Isian>({
+  const [isian, setIsian] = useState<IsianDataWajib>({
     namaLengkap: akun?.nama ?? '',
     nomorIdentitas: '',
     tanggalLahir: '',
@@ -101,6 +95,13 @@ export default function HalamanPemesanan() {
       <PageTitle finding={<>Isi data penumpang, periksa ringkasan, lalu konfirmasi. Kursi dijamin setelah pemesanan dibuat.</>}>
         Pesan Tiket
       </PageTitle>
+      {kembali && (
+        <div>
+          <LinkTombol to={kembali} varian="secondary" ukuran="sm">
+            Kembali ke perbandingan
+          </LinkTombol>
+        </div>
+      )}
 
       <Card>
         <InfoPenerbangan penerbangan={penerbangan} />
@@ -141,22 +142,7 @@ export default function HalamanPemesanan() {
         <Card>
           <form onSubmit={lanjut} noValidate className="flex flex-col gap-4">
             <JudulBagian>Data penumpang</JudulBagian>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {KOLOM.map((kolom) => (
-                <Field key={kolom.nama} label={kolom.label} petunjuk={kolom.petunjuk} galat={galat[kolom.nama]}>
-                  {(kontrol) => (
-                    <Input
-                      {...kontrol}
-                      name={kolom.nama}
-                      type={kolom.jenis ?? 'text'}
-                      inputMode={kolom.mode}
-                      value={isian[kolom.nama]}
-                      onChange={(event) => ubah(kolom.nama, event.target.value)}
-                    />
-                  )}
-                </Field>
-              ))}
-            </div>
+            <KolomFormulirDataWajib isian={isian} galat={galat} onUbah={ubah} />
             <div>
               <Button type="submit" varian="primary">
                 Lanjut

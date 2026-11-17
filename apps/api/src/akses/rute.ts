@@ -1,8 +1,8 @@
 import { validasiPendaftaran } from '@cutiterbang/domain'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 import type { Db } from '../db/client.ts'
-import { akun } from '../db/schema.ts'
+import { akun, profil } from '../db/schema.ts'
 import { buatGuard, type Variabel } from './middleware.ts'
 import { cocokSandi, hashSandi } from './sandi.ts'
 import { akhiriSesi, keAkunPublik, mulaiSesi } from './sesi.ts'
@@ -38,7 +38,7 @@ export function ruteAuth(db: Db) {
     const kataSandiHash = await hashSandi(data.kataSandi)
     let akunBaru
     try {
-      akunBaru = await db
+      const sisipAkun = db
         .insert(akun)
         .values({
           nama: data.nama,
@@ -48,7 +48,12 @@ export function ruteAuth(db: Db) {
           dibuatPada: new Date(),
         })
         .returning()
-        .get()
+      // Member punya Profil (komposisi, B1): dibuat kosong dalam batch yang sama dengan akunnya.
+      const hasil =
+        data.peran === 'MemberFrequentTraveller'
+          ? await db.batch([sisipAkun, db.insert(profil).values({ akunId: sql`(select id from akun where email = ${email})` })])
+          : await db.batch([sisipAkun])
+      akunBaru = hasil[0][0]!
     } catch {
       // balapan pada email unik
       return c.json({ pesan: PESAN_EMAIL_SUDAH_TERDAFTAR }, 409)

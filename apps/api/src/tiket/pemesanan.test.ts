@@ -240,7 +240,7 @@ describe('POST /api/pemesanan (US-2a, C1)', () => {
       expect(Object.keys(((await res.json()) as { galat: object }).galat)).toEqual([kolom])
     }
     expect((await pesan(cookie, f.id, 'bukan objek')).status).toBe(400)
-    expect(await jumlahAlokasi()).toBe(3) // hanya pemesanan seed yang tidak Cancelled
+    expect(await jumlahAlokasi()).toBe(5) // hanya pemesanan seed yang tidak Cancelled
     expect((await info(f.id)).sisaKursi).toBe(f.sisaKursi)
   })
 
@@ -307,6 +307,7 @@ describe('GET /api/pemesanan/saya', () => {
     const saya = await tiketSaya(await masuk('penumpang@cutiterbang.test'))
     expect(saya.map((t) => [t.kode, t.status, t.label, t.dapatDibatalkan])).toEqual([
       ['CTB001', 'WaitingForThePayment', 'Waiting for the payment', true],
+      ['CTB006', 'Confirmed', 'Confirmed', true],
       ['CTB002', 'Cancelled', 'Cancelled', false],
     ])
     const seedCtb001 = buatDataPemesanan(HARI_INI).find((p) => p.kode === 'CTB001')!
@@ -319,7 +320,7 @@ describe('GET /api/pemesanan/saya', () => {
       tersedia: true,
     })
     const member = await tiketSaya(await masuk('member1@cutiterbang.test'))
-    expect(member.map((t) => [t.kode, t.status])).toEqual([['CTB003', 'Booked']])
+    expect(member.map((t) => [t.kode, t.status])).toEqual([['CTB003', 'Booked'], ['CTB005', 'Confirmed']])
   })
 
   test('hanya milik sendiri; akun tanpa pemesanan mendapat daftar kosong', async () => {
@@ -386,7 +387,7 @@ describe('POST /api/pemesanan/:kode/batalkan (US-2b, C3)', () => {
     expect(lagi.status).toBe(409)
     expect(await lagi.json()).toEqual({ pesan: PESAN_TIDAK_DAPAT_DIBATALKAN })
     expect((await batalkan(cookie, 'CTB002')).status).toBe(409)
-    expect(await jumlahAlokasi()).toBe(2)
+    expect(await jumlahAlokasi()).toBe(4)
   })
 
   test('kode tidak dikenal dan milik orang lain: sama-sama 404 "Kode booking reference tidak ditemukan", tanpa mengubah apa pun', async () => {
@@ -426,7 +427,7 @@ describe('POST /api/pemesanan/:kode/batalkan (US-2b, C3)', () => {
     const res = await batalkan(cookie, 'CTB004')
     expect(res.status).toBe(200)
     expect(((await res.json()) as { pemesanan: TiketSaya }).pemesanan.status).toBe('Cancelled')
-    expect(await jumlahAlokasi()).toBe(1) // tinggal CTB001
+    expect(await jumlahAlokasi()).toBe(3) // tinggal CTB001, CTB005, CTB006
   })
 
   test('dua pembatalan serentak: satu 200, satu 409, kursi hanya dikembalikan sekali', async () => {
@@ -507,7 +508,7 @@ describe('KodeUnik dan atomisitas (basis data)', () => {
     const pengendali = buatPengendaliPemesanan(katalog, data, () => HARI_INI, () => SEKARANG, () => 0) // selalu AAAAAA
     const [pemesan] = await db.select().from(akun).where(eq(akun.email, 'penumpang@cutiterbang.test'))
     await expect(pengendali.konfirmasi(pemesan!, f.id, DATA)).rejects.toThrow(GALAT_KODE_TIDAK_UNIK)
-    expect(await jumlahAlokasi()).toBe(4) // 3 seed + AAAAAA; tidak ada yang tertinggal
+    expect(await jumlahAlokasi()).toBe(6) // 5 seed + AAAAAA; tidak ada yang tertinggal
   })
 })
 
@@ -551,7 +552,7 @@ describe('AlokasiKursi di SQL = aturan domain bolehAlokasi', () => {
     const id = await idPenerbanganNomor(DEMO.habis.nomorPenerbangan, TANGGAL_DEMO) // 1 kursi, terpakai 1
     const res = await pesan(await masuk('penumpang@cutiterbang.test'), id)
     expect(res.status).toBe(409)
-    expect(await jumlahAlokasi()).toBe(3)
+    expect(await jumlahAlokasi()).toBe(5)
   })
 })
 
@@ -579,7 +580,7 @@ describe('invarian Pemesanan dan hitungan kursi', () => {
   }
 
   test('seed: DataPenumpangLengkap dan PesananSendiri berlaku pada semua Pemesanan', async () => {
-    expect((await muatPemesanan()).length).toBe(4)
+    expect((await muatPemesanan()).length).toBe(6)
     expect(await pelanggaran()).toEqual([])
   })
 
@@ -588,7 +589,7 @@ describe('invarian Pemesanan dan hitungan kursi', () => {
     expect((await pesan(await masuk('penumpang@cutiterbang.test'), f.id)).status).toBe(201)
     expect((await pesan(await masuk('member2@cutiterbang.test'), f.id, { ...DATA, namaLengkap: 'Andi Pratama' })).status).toBe(201)
     const semua = await muatPemesanan()
-    expect(semua).toHaveLength(6)
+    expect(semua).toHaveLength(8)
     expect(semua.filter((b) => b.peran === 'MemberFrequentTraveller').length).toBeGreaterThanOrEqual(3)
     expect(await pelanggaran()).toEqual([])
   })
@@ -616,9 +617,9 @@ describe('invarian Pemesanan dan hitungan kursi', () => {
   test('seed: SUM(alokasi_kursi) = penumpang pada Pemesanan non-Cancelled; CTB002 (Cancelled) tanpa alokasi', async () => {
     const { selisih, total } = await cocokkanKursi()
     expect(selisih).toEqual([])
-    expect(total).toBe(3)
+    expect(total).toBe(5)
     expect(await db.select().from(alokasiKursi).where(eq(alokasiKursi.kodeNormal, 'ctb002'))).toHaveLength(0)
-    for (const kode of ['ctb001', 'ctb003', 'ctb004']) {
+    for (const kode of ['ctb001', 'ctb003', 'ctb004', 'ctb005', 'ctb006']) {
       expect(await db.select().from(alokasiKursi).where(eq(alokasiKursi.kodeNormal, kode))).toHaveLength(1)
     }
   })
@@ -677,21 +678,23 @@ describe('seed dan reset', () => {
       (await db.select({ n: count() }).from(penumpang))[0]!.n,
       await jumlahAlokasi(),
     ]
-    expect(await hitung()).toEqual([4, 4, 3])
+    expect(await hitung()).toEqual([6, 6, 5])
     await batalkan(await masuk('penumpang@cutiterbang.test'), 'CTB001')
     await seed(db, HARI_INI)
     await seed(db, HARI_INI)
-    expect(await hitung()).toEqual([4, 4, 2])
+    expect(await hitung()).toEqual([6, 6, 4])
     expect((await db.select().from(pemesanan).where(eq(pemesanan.kode, 'CTB001')))[0]!.status).toBe('Cancelled')
   })
 
-  test('seed menurut contoh: pemesanan demo untuk akun demo, tanpa Confirmed', async () => {
+  test('seed menurut contoh: pemesanan demo untuk akun demo, dua Confirmed (dengan ETiket)', async () => {
     const data = buatDataPemesanan(HARI_INI)
     expect(data.map((p) => [p.kode, p.status, p.akunEmail])).toEqual([
       ['CTB001', 'WaitingForThePayment', 'penumpang@cutiterbang.test'],
       ['CTB002', 'Cancelled', 'penumpang@cutiterbang.test'],
       ['CTB003', 'Booked', 'member1@cutiterbang.test'],
       ['CTB004', 'Booked', 'member2@cutiterbang.test'],
+      ['CTB005', 'Confirmed', 'member1@cutiterbang.test'],
+      ['CTB006', 'Confirmed', 'penumpang@cutiterbang.test'],
     ])
     expect(new Set(data.map((p) => normalKode(p.kode))).size).toBe(data.length)
   })
@@ -700,8 +703,8 @@ describe('seed dan reset', () => {
     const cookie = await masuk('penumpang@cutiterbang.test')
     expect((await pesan(cookie, (await idPadat()).id)).status).toBe(201)
     await resetData(db)
-    expect((await db.select({ n: count() }).from(pemesanan))[0]!.n).toBe(4)
-    expect((await db.select({ n: count() }).from(penumpang))[0]!.n).toBe(4)
-    expect(await jumlahAlokasi()).toBe(3)
+    expect((await db.select({ n: count() }).from(pemesanan))[0]!.n).toBe(6)
+    expect((await db.select({ n: count() }).from(penumpang))[0]!.n).toBe(6)
+    expect(await jumlahAlokasi()).toBe(5)
   })
 })

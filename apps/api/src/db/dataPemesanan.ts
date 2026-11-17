@@ -1,5 +1,5 @@
 // Data seed Pemesanan demo agar "Tiket Saya" tidak kosong. Murni data, tanpa I/O, supaya tes dan e2e bisa memakainya.
-// Tidak ada pemesanan Confirmed: ConfirmedPunyaETiket butuh ETiket, yang baru ada di Fase 6.
+// CTB005 dan CTB006 berstatus Confirmed: seed memberi masing-masing satu ETiket (inv ConfirmedPunyaETiket), untuk demo US-5b.
 import { tambahHari, type DataWajib, type StatusBooking, type TanggalIso } from '@cutiterbang/domain'
 import { buatDataPenerbangan, DEMO } from './dataPenerbangan.ts'
 
@@ -16,7 +16,8 @@ export interface DataPemesananSeed {
   penumpang: DataWajib
 }
 
-const PENUMPANG: Record<string, DataWajib> = {
+/** DataWajib akun demo; dipakai juga sebagai isian Profil (dataProfil.ts). */
+export const PENUMPANG: Record<string, DataWajib> = {
   'penumpang@cutiterbang.test': {
     namaLengkap: 'Budi Santoso',
     nomorIdentitas: '3171010101900001',
@@ -59,6 +60,9 @@ export function buatDataPemesanan(hariIni: TanggalIso): DataPemesananSeed[] {
     { kode: 'CTB002', status: 'Cancelled', akunEmail: 'penumpang@cutiterbang.test', ...pada('Makassar', 'Balikpapan', 8), waktuDibuat: jam(30) },
     { kode: 'CTB003', status: 'Booked', akunEmail: 'member1@cutiterbang.test', ...pada('Surabaya', 'Makassar', 6), waktuDibuat: jam(5) },
     { kode: 'CTB004', status: 'Booked', akunEmail: 'member2@cutiterbang.test', ...pada(DEMO.habis.asal, DEMO.habis.tujuan, DEMO.habis.hariKe), nomorPenerbangan: DEMO.habis.nomorPenerbangan, waktuDibuat: jam(8) },
+    // Confirmed: member1 memvalidasinya menjadi "valid" (data Sari Dewi); CTB006 milik Budi Santoso, jadi "tidak valid" bagi member1.
+    { kode: 'CTB005', status: 'Confirmed', akunEmail: 'member1@cutiterbang.test', ...pada('Jakarta', 'Balikpapan', 9), waktuDibuat: jam(12) },
+    { kode: 'CTB006', status: 'Confirmed', akunEmail: 'penumpang@cutiterbang.test', ...pada('Yogyakarta', 'Jakarta', 10), waktuDibuat: jam(14) },
   ]
   return daftar.map((pemesanan) => ({ ...pemesanan, penumpang: PENUMPANG[pemesanan.akunEmail]! }))
 }

@@ -1,4 +1,4 @@
-import { singkatanZona, type StatusBooking, type ZonaWaktu } from '@cutiterbang/domain'
+import { singkatanZona, type StatusBooking, type StatusProfil, type ZonaWaktu } from '@cutiterbang/domain'
 import type { VarianPill } from '../ui/index.ts'
 
 const FORMAT_RUPIAH = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 })
@@ -15,4 +15,10 @@ export const VARIAN_STATUS_BOOKING: Record<StatusBooking, VarianPill> = {
   Booked: 'accent',
   Confirmed: 'positive',
   Cancelled: 'neutral',
+}
+
+/** Pill StatusProfil: lengkap = positive, tidakLengkap = warning. */
+export const VARIAN_STATUS_PROFIL: Record<StatusProfil, VarianPill> = {
+  lengkap: 'positive',
+  tidakLengkap: 'warning',
 }

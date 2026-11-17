@@ -24,7 +24,8 @@ export const PESAN_EMAIL = 'Email berbentuk nama@domain'
 /** Ekstensi 7a: tampil bersama penanda kolom yang salah. */
 export const PESAN_DATA_PENUMPANG_TIDAK_LENGKAP = 'Data penumpang wajib tidak lengkap'
 
-const PESAN_KOLOM: Record<KolomDataWajib, string> = {
+/** Frasa format spesifikasi per kolom ("Variasi teknologi dan data"). */
+export const PESAN_KOLOM: Record<KolomDataWajib, string> = {
   namaLengkap: PESAN_NAMA_LENGKAP,
   nomorIdentitas: PESAN_NOMOR_IDENTITAS,
   tanggalLahir: PESAN_TANGGAL_LAHIR,
@@ -33,7 +34,7 @@ const PESAN_KOLOM: Record<KolomDataWajib, string> = {
 }
 
 /** Galat format sebuah nilai yang tidak kosong (sudah di-trim); null = format valid (OCL formatValid per kolom). */
-function galatFormat(kolom: KolomDataWajib, nilai: string, hariIni: TanggalIso): string | null {
+export function galatFormat(kolom: KolomDataWajib, nilai: string, hariIni: TanggalIso): string | null {
   switch (kolom) {
     case 'namaLengkap':
       return nilai.length > 100 ? PESAN_NAMA_LENGKAP : null

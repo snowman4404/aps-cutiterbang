@@ -43,6 +43,13 @@
       "when": 1794898033477,
       "tag": "0005_public_exiles",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1794901140518,
+      "tag": "0006_cool_dragon_man",
+      "breakpoints": true
     }
   ]
 }
