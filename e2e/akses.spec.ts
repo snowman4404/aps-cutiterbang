@@ -80,7 +80,7 @@ test('belum masuk membuka /cuti/pengajuan: diarahkan ke /masuk lalu kembali sete
   await masuk(page, 'hrd@cutiterbang.test')
   await expect(page).toHaveURL(/\/cuti\/pengajuan$/)
   await expect(page.getByRole('heading', { name: 'Pengajuan Cuti' })).toBeVisible()
-  await expect(page.getByText('Belum dibuat — Fase 2')).toBeVisible()
+  await expect(page.getByLabel('Tanggal mulai')).toBeVisible()
 })
 
 test('Calon Penumpang membuka /cuti/pengajuan: tidak punya akses', async ({ page }) => {

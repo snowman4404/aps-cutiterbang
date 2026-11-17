@@ -141,22 +141,21 @@ describe('GET /api/auth/saya dan POST /api/auth/keluar', () => {
 
 describe('guard peran', () => {
   test('tanpa login: 401', async () => {
-    const res = await kirim('/cuti/ping', undefined, undefined, 'GET')
+    const res = await kirim('/cuti/pegawai', undefined, undefined, 'GET')
     expect(res.status).toBe(401)
   })
 
   test('peran salah: 403', async () => {
     const cookie = await masuk('penumpang@cutiterbang.test')
-    const res = await kirim('/cuti/ping', undefined, cookie, 'GET')
+    const res = await kirim('/cuti/pegawai', undefined, cookie, 'GET')
     expect(res.status).toBe(403)
     expect(await res.json()).toEqual({ pesan: PESAN_TIDAK_ADA_AKSES })
   })
 
   test('HRDManajer lolos guard HRDManajer', async () => {
     const cookie = await masuk('hrd@cutiterbang.test')
-    const res = await kirim('/cuti/ping', undefined, cookie, 'GET')
+    const res = await kirim('/cuti/pegawai', undefined, cookie, 'GET')
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ ok: true })
   })
 
   test('Member lolos guard CalonPenumpang', async () => {

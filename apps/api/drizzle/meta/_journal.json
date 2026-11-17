@@ -8,6 +8,13 @@
       "when": 1794875266223,
       "tag": "0000_quiet_doctor_spectrum",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1794877225992,
+      "tag": "0001_glorious_toad",
+      "breakpoints": true
     }
   ]
 }

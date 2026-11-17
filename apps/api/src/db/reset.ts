@@ -3,12 +3,15 @@
 import { fileURLToPath } from 'node:url'
 import { buatDb, type Db } from './client.ts'
 import { jalankanMigrasi } from './migrate.ts'
-import { akun, sesi } from './schema.ts'
+import { akun, hariLibur, pegawai, pengajuanCuti, sesi } from './schema.ts'
 import { seed } from './seed.ts'
 
 export async function resetData(db: Db) {
   await db.delete(sesi)
   await db.delete(akun)
+  await db.delete(pengajuanCuti)
+  await db.delete(pegawai)
+  await db.delete(hariLibur)
   await seed(db)
 }
 

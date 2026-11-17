@@ -25,12 +25,13 @@ Phases run in order: each one builds on the data and screens of the one before. 
 - [x] Phase 1 pages (masuk, daftar, beranda, placeholders, no-access) restyled
 
 ## Phase 2: Module A, Manajemen Cuti
-**Decision:** G9 (leave spanning 31 Dec counts toward the start year; can remaining leave go negative?)
-- [ ] Domain: working days (Mon–Fri minus `HariLibur`), `/lamaCuti`, `beririsan()`, `riwayatCuti()`, `/sisaCuti`
-- [ ] Schema + seed: `Pegawai`, `PengajuanCuti`, `HariLibur` (stands in for Data Kepegawaian)
-- [ ] US-1a Melihat pengajuan cuti per periode
-- [ ] US-1b Melihat riwayat cuti pegawai
-- [ ] US-1c Melihat sisa cuti pegawai
+**Decided (2026-11-17):**
+- G9: a leave crossing 31 Dec counts in full toward the year of its start date (and appears only in that year's history); `/sisaCuti` may go negative and the UI flags it as over the allowance.
+- [x] Domain: working days (Mon–Fri minus `HariLibur`), `/lamaCuti`, `beririsan()`, `riwayatCuti()`, `/sisaCuti`
+- [x] Schema + seed: `Pegawai`, `PengajuanCuti`, `HariLibur` (stands in for Data Kepegawaian)
+- [x] US-1a Melihat pengajuan cuti per periode
+- [x] US-1b Melihat riwayat cuti pegawai
+- [x] US-1c Melihat sisa cuti pegawai
 
 ## Phase 3: Flight catalog and search
 **Decision:** G1 (time zone per `Kota` so "already departed" can be computed)

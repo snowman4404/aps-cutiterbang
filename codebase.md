@@ -8,10 +8,11 @@ What each file does. Update this file whenever you add, move, rename or delete a
 |---|---|
 | `package.json` | Workspace root; scripts for dev (both servers), test, e2e, db |
 | `vitest.config.ts` | Vitest: picks up `*.test.ts` in `packages/` and `apps/*/src/` |
-| `playwright.config.ts` | Playwright: Chromium only, serial, starts API (8787) and web (5173) |
+| `playwright.config.ts` | Playwright: Chromium only, serial (`workers: 1`, shared DB), starts API (8787) and web (5173) |
 | `docs/spesifikasi.md` | Full assignment spec (use cases, domain model, diagrams) |
 | `docs/roadmap.md` | Build phases, gap decisions per phase, progress checkboxes |
 | `e2e/smoke.spec.ts` | Smoke test: page loads and reaches `/api/health` |
+| `e2e/cuti.spec.ts` | Phase 2 e2e (US-1a/1b/1c + non-HRD access). Expected values computed from `buatDataCuti` + domain rules. Calls `POST /api/dev/reset` before each test |
 | `e2e/akses.spec.ts` | Phase 1 e2e: login per role and role nav, `?next=` redirect, no-access message, sign-up, logout, reset. Calls `POST /api/dev/reset` before each test |
 | `e2e/tema.spec.ts` | Theme toggle sets `data-theme` on `<html>` and persists after reload |
 | `e2e/visual.spec.ts` | Style-review screenshots to `.taste-skill/app-shots/` (gitignored); skipped unless `VISUAL=1` (`VISUAL=1 npx playwright test e2e/visual.spec.ts`) |
@@ -21,30 +22,41 @@ What each file does. Update this file whenever you add, move, rename or delete a
 
 | File | Purpose |
 |---|---|
-| `src/index.ts` | Package entry; exports `NAMA_APLIKASI` and re-exports `akses/` |
+| `src/index.ts` | Package entry; exports `NAMA_APLIKASI` and re-exports `akses/` and `cuti/` |
 | `src/index.test.ts` | Placeholder unit test |
 | `src/akses/index.ts` | Barrel for the `akses` module (must not import cuti/tiket) |
 | `src/akses/peran.ts` | `Peran`, `DAFTAR_PERAN`, `LABEL_PERAN`, `punyaPeran` (Member also satisfies CalonPenumpang), `PESAN_TIDAK_ADA_AKSES` |
 | `src/akses/peran.test.ts` | Unit tests for `punyaPeran` |
 | `src/akses/pendaftaran.ts` | `validasiPendaftaran` (field -> Indonesian error), `PERAN_PENDAFTARAN` |
 | `src/akses/pendaftaran.test.ts` | Unit tests for `validasiPendaftaran` |
+| `src/cuti/index.ts` | Barrel for the `cuti` module (must not import tiket) |
+| `src/cuti/tanggal.ts` | ISO `YYYY-MM-DD` date helpers in UTC (`adalahTanggalIso`, `tambahHari`, `hariDalamMinggu`, `tahunDari`, `hariIniWib`) |
+| `src/cuti/kalenderKerja.ts` | `KalenderKerja`: `isHariKerja` (Mon-Fri minus `HariLibur`), `jumlahHariKerja` (inclusive) |
+| `src/cuti/pengajuanCuti.ts` | `StatusPengajuanCuti`, `lamaCuti`, `beririsan`, `validasiPeriode`, sorting, `pengajuanPadaPeriode`, cuti messages |
+| `src/cuti/pegawai.ts` | `cutiDisetujuiTahunIni`, `riwayatCuti`, `cutiTerpakai`, `sisaCuti` (G9: full to start year, may be negative) |
+| `src/cuti/cuti.test.ts` | Unit tests for the cuti domain |
 
 ## apps/api (Hono + SQLite/Drizzle)
 
 | File | Purpose |
 |---|---|
-| `src/index.ts` | Server entry: `buatDb`, run migrations, seed if `akun` is empty, serve `buatApp(db)` on `PORT` (default 8787) |
-| `src/app.ts` | `buatApp(db)`: Hono app under `/api`; health, `/auth`, demo guarded pings (`/cuti/ping`, `/tiket/saya/ping`), `POST /dev/reset` |
+| `src/index.ts` | Server entry: `buatDb`, run migrations, run the idempotent `seed`, serve `buatApp(db)` on `PORT` (default 8787) |
+| `src/app.ts` | `buatApp(db, { hariIni? })`: Hono app under `/api`; health, `/auth`, `/cuti`, demo guarded ping (`/tiket/saya/ping`), `POST /dev/reset` |
 | `src/akses/rute.ts` | `/api/auth`: `daftar`, `masuk`, `keluar`, `saya` |
 | `src/akses/sesi.ts` | Session cookie `sid` (httpOnly, Lax, 7 days) backed by the `sesi` table; `akunDariSesi`, `keAkunPublik` |
 | `src/akses/middleware.ts` | `buatGuard(db)` -> `butuhLogin` (401) and `butuhPeran(...)` (403) |
 | `src/akses/sandi.ts` | scrypt password hash + timing-safe compare (`node:crypto`) |
 | `src/akses/akses.test.ts` | API tests via `app.request()` on an in-memory DB |
+| `src/cuti/rute.ts` | `/api/cuti` (HRDManajer only, read-only): `pengajuan?mulai&akhir`, `pegawai`, `pegawai/:nip/riwayat`, `pegawai/:nip/sisa` |
+| `src/cuti/pengendaliCuti.ts` | Control `PengendaliCuti`: `tampilkanPengajuan`, `muatDaftarPegawai`, `tampilkanRiwayat`, `tampilkanSisaCuti` |
+| `src/cuti/antarmukaDataKepegawaian.ts` | Boundary "Antarmuka Data Kepegawaian": DB queries for `pegawai`, `pengajuan_cuti`, `hari_libur` |
+| `src/cuti/cuti.test.ts` | API tests: 401/403, validation 400s, overlap + sort, riwayat, sisa (negative), 404, seed idempotent |
 | `src/db/client.ts` | `buatDb(url)` factory over libsql (`:memory:` for tests; default `DATABASE_URL` or `file:data/cutiterbang.db`) |
-| `src/db/schema.ts` | Drizzle tables: `akun`, `sesi` |
+| `src/db/schema.ts` | Drizzle tables: `akun`, `sesi`, `pegawai`, `pengajuan_cuti`, `hari_libur` |
 | `src/db/migrate.ts` | `jalankanMigrasi(db)`; migrations folder resolved relative to the package; also a CLI |
-| `src/db/seed.ts` | `seed(db)` + `AKUN_DEMO`, `SANDI_DEMO`; idempotent (skips existing emails); also a CLI |
-| `src/db/reset.ts` | `resetData(db)`: deletes `sesi` then `akun` rows in-process and reseeds; also the `db:reset` CLI |
+| `src/db/seed.ts` | `seed(db, hariIni?)` + `AKUN_DEMO`, `SANDI_DEMO`; idempotent (skips existing emails, holidays, pegawai); also a CLI |
+| `src/db/dataCuti.ts` | Pure cuti seed data `buatDataCuti(tahun)` + `NIP` (dates relative to the current year); shared with tests and e2e |
+| `src/db/reset.ts` | `resetData(db)`: deletes `sesi`, `akun`, `pengajuan_cuti`, `pegawai`, `hari_libur` rows in-process and reseeds; also the `db:reset` CLI |
 | `drizzle/` | Generated SQL migrations (committed) |
 | `drizzle.config.ts` | drizzle-kit config (SQLite, outputs to `drizzle/`) |
 
@@ -56,13 +68,18 @@ What each file does. Update this file whenever you add, move, rename or delete a
 | `vite.config.ts` | React + Tailwind plugins; proxies `/api` to port 8787 |
 | `src/main.tsx` | React entry |
 | `src/App.tsx` | `AuthProvider` + `RouterProvider` |
-| `src/router.tsx` | `createBrowserRouter`: shell layout, `/`, `/masuk`, `/daftar`, and one guarded placeholder route per `MENU` item |
+| `src/router.tsx` | `createBrowserRouter`: shell layout, `/`, `/masuk`, `/daftar`, and one guarded route per `MENU` item (built page from `HALAMAN`, else placeholder) |
 | `src/index.css` | Style-A tokens (light/dark, `:root` + `data-theme`), Tailwind `@theme` mapping (colours, radii, `desk` breakpoint 1101px, fonts), base styles, `.tabel` table styles |
 | `src/akses/api.ts` | `panggil()` fetch helper returning status + JSON |
 | `src/akses/AuthContext.tsx` | `AuthProvider` / `useAuth`: `akun`, `masuk`, `daftar`, `keluar`, `muatUlang` (loads `/api/auth/saya` on start) |
 | `src/akses/Butuh.tsx` | Route guard `<Butuh peran>`: logged out -> `/masuk?next=`, wrong role -> `PESAN_TIDAK_ADA_AKSES` only |
 | `src/akses/HalamanMasuk.tsx` | Login page with demo-accounts box |
 | `src/akses/HalamanDaftar.tsx` | Sign-up page (client + API field errors) |
+| `src/cuti/HalamanDaftarPengajuanCuti.tsx` | US-1a page: period form (client + API field errors), table with Pill status |
+| `src/cuti/HalamanRiwayatCuti.tsx` | US-1b page: pegawai select (`?nip=`), history table or "Belum ada riwayat cuti" |
+| `src/cuti/HalamanSisaCuti.tsx` | US-1c page: pegawai select (`?nip=`), sisa cuti card, "Melebihi jatah" pill when negative |
+| `src/cuti/PilihPegawai.tsx` | Shared pegawai `Select` (nama + NIP) loaded from `/api/cuti/pegawai` |
+| `src/cuti/format.ts` | `formatTanggal` (id-ID, "29 Des 2026"), `formatLama`, status -> Pill variant |
 | `src/shell/menu.ts` | `MENU`: single source of truth (route, grup, label, roles, phase, US) + `menuUntuk(peran)` + `kelompokMenu()` (group by `URUTAN_GRUP`) |
 | `src/shell/Layout.tsx` | Tinted L-frame: sidebar (brand, grouped nav, Reset data demo, user row + Keluar), 48px top bar (theme toggle, Masuk/Daftar), white sheet; phone: sticky 56px bar + full-screen menu sheet |
 | `src/halaman/Beranda.tsx` | Home: greeting + role menu as grouped rows, or intro + Masuk/Daftar when logged out |
