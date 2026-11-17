@@ -8,11 +8,21 @@ Phases run in order: each one builds on the data and screens of the one before. 
 - [x] Monorepo, web/api/domain packages, Vitest, Playwright, CLAUDE.md, codebase.md
 
 ## Phase 1: Identity & Access (shared by both modules)
-**Decisions:** G11 (can one account hold several roles?), G12 (do US-4, 5a, 5b, 8a need login?), G10 (is member sign-up in scope?)
-- [ ] `Akun` table with role: HRD Manajer, Calon Penumpang, Member Frequent Traveller, Manajer Travel, Pengunjung
-- [ ] Seeded demo account per role; login/logout with a session cookie
-- [ ] API role guard + web route guard showing "Anda tidak memiliki akses ke halaman ini"
-- [ ] App shell: navigation that changes by role; "Reset data" control for demos
+**Decided (2026-11-17):**
+- G11: one role per account; roles stay subclasses of `Akun` as in the spec.
+- G12: US-4, 5a, 5b require login as Member Frequent Traveller; US-8a requires login as Manajer Travel.
+- G10: sign-up is in scope. "Daftar" creates a new account as Calon Penumpang or Member Frequent Traveller; the role is fixed at sign-up (no upgrade), so the subclass model holds. HRD Manajer, Manajer Travel and Pengunjung exist only via seed data. A few Member accounts are seeded for demos.
+- [x] `Akun` table with role: HRD Manajer, Calon Penumpang, Member Frequent Traveller, Manajer Travel, Pengunjung
+- [x] Seeded demo account per role; login/logout with a session cookie
+- [x] API role guard + web route guard showing "Anda tidak memiliki akses ke halaman ini"
+- [x] App shell: navigation that changes by role; "Reset data" control for demos
+
+## Phase 1b: Style foundation
+**Decided (2026-11-17):** style A "Clean & professional" (`design/mockups/clean.html`, tokens in `clean.css` + `layout.css`), light + dark mode following the device with a manual toggle.
+- [ ] Tokens (light/dark) and IBM Plex Sans/Mono in the web app; theme toggle
+- [ ] Shell restyled: tinted L-frame (sidebar + top bar), white sheet, phone menu
+- [ ] Shared components: buttons, fields, table, status pill, chips, card, empty/error states
+- [ ] Phase 1 pages (masuk, daftar, beranda, placeholders, no-access) restyled
 
 ## Phase 2: Module A, Manajemen Cuti
 **Decision:** G9 (leave spanning 31 Dec counts toward the start year; can remaining leave go negative?)
