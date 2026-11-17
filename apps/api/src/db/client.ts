@@ -3,7 +3,12 @@ import { createClient } from '@libsql/client'
 import { drizzle } from 'drizzle-orm/libsql'
 import * as schema from './schema.ts'
 
-const url = process.env.DATABASE_URL ?? 'file:data/cutiterbang.db'
-if (url.startsWith('file:')) mkdirSync('data', { recursive: true })
+export const URL_DB_BAWAAN = 'file:data/cutiterbang.db'
 
-export const db = drizzle(createClient({ url }), { schema })
+// Gunakan ':memory:' untuk tes. Untuk file, direktori datanya dibuat otomatis.
+export function buatDb(url: string = process.env.DATABASE_URL ?? URL_DB_BAWAAN) {
+  if (url.startsWith('file:')) mkdirSync('data', { recursive: true })
+  return drizzle(createClient({ url }), { schema })
+}
+
+export type Db = ReturnType<typeof buatDb>

@@ -1,14 +1,17 @@
 import { serve } from '@hono/node-server'
-import { Hono } from 'hono'
-import { NAMA_APLIKASI } from '@cutiterbang/domain'
+import { count } from 'drizzle-orm'
+import { buatApp } from './app.ts'
+import { buatDb } from './db/client.ts'
+import { jalankanMigrasi } from './db/migrate.ts'
+import { akun } from './db/schema.ts'
+import { seed } from './db/seed.ts'
 
-const app = new Hono().basePath('/api')
-
-app.get('/health', (c) => c.json({ ok: true, app: NAMA_APLIKASI }))
+const db = buatDb()
+await jalankanMigrasi(db)
+const jumlahAkun = await db.select({ n: count() }).from(akun).get()
+if (!jumlahAkun || jumlahAkun.n === 0) await seed(db)
 
 const port = Number(process.env.PORT ?? 8787)
-serve({ fetch: app.fetch, port }, (info) => {
+serve({ fetch: buatApp(db).fetch, port }, (info) => {
   console.log(`API listening on http://localhost:${info.port}/api`)
 })
-
-export type AppType = typeof app
