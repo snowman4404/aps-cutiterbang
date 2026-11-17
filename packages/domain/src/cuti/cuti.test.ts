@@ -61,29 +61,30 @@ describe('beririsan', () => {
     ['sebelum', '2026-11-01', '2026-11-09', false],
     ['sesudah', '2026-11-21', '2026-11-30', false],
   ])('%s', (_n, mulai, akhir, hasil) => {
-    expect(beririsan(p, mulai, akhir)).toBe(hasil)
+    expect(beririsan(p, { mulai, akhir })).toBe(hasil)
   })
 })
 
 describe('validasiPeriode', () => {
   test('valid = kosong', () => {
-    expect(validasiPeriode({ mulai: '2026-11-01', akhir: '2026-11-01' })).toEqual({})
+    expect(validasiPeriode({ mulai: ' 2026-11-01', akhir: '2026-11-01' })).toEqual({
+      periode: { mulai: '2026-11-01', akhir: '2026-11-01' },
+    })
   })
   test('kosong ditolak per kolom', () => {
     expect(validasiPeriode({ mulai: '', akhir: '' })).toEqual({
-      mulai: PESAN_MULAI_WAJIB,
-      akhir: PESAN_AKHIR_WAJIB,
+      galat: { mulai: PESAN_MULAI_WAJIB, akhir: PESAN_AKHIR_WAJIB },
     })
-    expect(validasiPeriode({ mulai: '2026-11-01' })).toEqual({ akhir: PESAN_AKHIR_WAJIB })
+    expect(validasiPeriode({ mulai: '2026-11-01' })).toEqual({ galat: { akhir: PESAN_AKHIR_WAJIB } })
   })
   test('akhir lebih awal dari mulai menandai tanggal akhir', () => {
     expect(validasiPeriode({ mulai: '2026-11-10', akhir: '2026-11-09' })).toEqual({
-      akhir: PESAN_AKHIR_SEBELUM_MULAI,
+      galat: { akhir: PESAN_AKHIR_SEBELUM_MULAI },
     })
   })
   test('format tidak valid ditolak', () => {
-    expect(validasiPeriode({ mulai: '2026-13-01', akhir: '2026-11-09' }).mulai).toBeDefined()
-    expect(validasiPeriode({ mulai: '2026-02-30', akhir: '2026-03-09' }).mulai).toBeDefined()
+    expect(validasiPeriode({ mulai: '2026-13-01', akhir: '2026-11-09' })).toHaveProperty('galat.mulai')
+    expect(validasiPeriode({ mulai: '2026-02-30', akhir: '2026-03-09' })).toHaveProperty('galat.mulai')
   })
 })
 
@@ -95,11 +96,11 @@ describe('pengajuanPadaPeriode', () => {
     cuti('2026-12-01', '2026-12-02', 'Disetujui'),
   ]
   test('Diajukan dan Disetujui saja, beririsan, urut tanggalMulai naik', () => {
-    const hasil = pengajuanPadaPeriode(daftar, '2026-11-10', '2026-11-20')
+    const hasil = pengajuanPadaPeriode(daftar, { mulai: '2026-11-10', akhir: '2026-11-20' })
     expect(hasil.map((p) => p.tanggalMulai)).toEqual(['2026-11-05', '2026-11-20'])
   })
   test('tidak ada = kosong', () => {
-    expect(pengajuanPadaPeriode(daftar, '2027-01-01', '2027-01-31')).toEqual([])
+    expect(pengajuanPadaPeriode(daftar, { mulai: '2027-01-01', akhir: '2027-01-31' })).toEqual([])
   })
   test('pengurutan tidak mengubah masukan', () => {
     const asli = [cuti('2026-02-01', '2026-02-02'), cuti('2026-01-01', '2026-01-02')]

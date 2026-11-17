@@ -7,6 +7,8 @@ import HalamanDaftarPengajuanCuti from './cuti/HalamanDaftarPengajuanCuti.tsx'
 import HalamanRiwayatCuti from './cuti/HalamanRiwayatCuti.tsx'
 import HalamanSisaCuti from './cuti/HalamanSisaCuti.tsx'
 import HalamanCariPenerbangan from './tiket/HalamanCariPenerbangan.tsx'
+import HalamanPemesanan from './tiket/HalamanPemesanan.tsx'
+import HalamanTiketSaya from './tiket/HalamanTiketSaya.tsx'
 import Beranda from './halaman/Beranda.tsx'
 import Placeholder from './halaman/Placeholder.tsx'
 import Layout from './shell/Layout.tsx'
@@ -18,6 +20,7 @@ const HALAMAN: Record<string, ReactNode> = {
   '/cuti/riwayat': <HalamanRiwayatCuti />,
   '/cuti/sisa': <HalamanSisaCuti />,
   '/penerbangan': <HalamanCariPenerbangan />,
+  '/tiket-saya': <HalamanTiketSaya />,
 }
 
 export const router = createBrowserRouter([
@@ -27,6 +30,15 @@ export const router = createBrowserRouter([
       { path: '/', element: <Beranda /> },
       { path: '/masuk', element: <HalamanMasuk /> },
       { path: '/daftar', element: <HalamanDaftar /> },
+      // US-2a: bukan item menu (dibuka dari tombol Pesan di hasil pencarian).
+      {
+        path: '/pesan/:idPenerbangan',
+        element: (
+          <Butuh peran={['CalonPenumpang']}>
+            <HalamanPemesanan />
+          </Butuh>
+        ),
+      },
       ...MENU.map((item) => {
         const halaman = HALAMAN[item.path] ?? <Placeholder item={item} />
         return {

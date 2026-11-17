@@ -1,28 +1,15 @@
-import { useEffect, useState } from 'react'
+import type { PegawaiRingkas } from '@cutiterbang/domain'
 import { Alert, Field, Select } from '../ui/index.ts'
-import { panggil } from '../akses/api.ts'
-import type { PegawaiRingkas } from './format.ts'
+import { useMuat } from '../lib/useMuat.ts'
 
 // Langkah 1-2 US-1b/1c: daftar pegawai (nama + NIP), HRD memilih satu.
 export function PilihPegawai({ nip, onPilih }: { nip: string; onPilih: (nip: string) => void }) {
-  const [daftar, setDaftar] = useState<PegawaiRingkas[] | null>(null)
-  const [galat, setGalat] = useState('')
-
-  useEffect(() => {
-    let batal = false
-    void panggil<{ pegawai: PegawaiRingkas[]; pesan?: string }>('/cuti/pegawai').then((r) => {
-      if (batal) return
-      if (r.status === 200) setDaftar(r.data.pegawai)
-      else setGalat(r.data.pesan ?? 'Gagal memuat daftar pegawai')
-    })
-    return () => {
-      batal = true
-    }
-  }, [])
+  const { data, galat } = useMuat<{ pegawai: PegawaiRingkas[] }>('/cuti/pegawai', 'Gagal memuat daftar pegawai')
+  const daftar = data?.pegawai ?? null
 
   if (galat) return <Alert varian="negative">{galat}</Alert>
   return (
-    <div className="max-w-[420px]">
+    <div className="max-w-form">
       <Field label="Pegawai">
         {(p) => (
           <Select {...p} name="pegawai" value={nip} disabled={!daftar} onChange={(e) => onPilih(e.target.value)}>

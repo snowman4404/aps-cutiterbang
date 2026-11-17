@@ -1,8 +1,12 @@
 import { jumlahHariKerja, type DaftarHariLibur } from './kalenderKerja.ts'
 import { adalahTanggalIso, type TanggalIso } from '../umum/tanggal.ts'
 
-export type StatusPengajuanCuti = 'Diajukan' | 'Disetujui' | 'Ditolak'
-export const DAFTAR_STATUS_PENGAJUAN: readonly StatusPengajuanCuti[] = ['Diajukan', 'Disetujui', 'Ditolak']
+/** Sumber tunggal status PengajuanCuti; tipe, kolom DB, dan peta tampilan diturunkan dari sini. */
+export const DAFTAR_STATUS_PENGAJUAN = ['Diajukan', 'Disetujui', 'Ditolak'] as const
+export type StatusPengajuanCuti = (typeof DAFTAR_STATUS_PENGAJUAN)[number]
+
+/** Status yang tampil di US-1a (Ditolak tidak). */
+const STATUS_PADA_DAFTAR: readonly StatusPengajuanCuti[] = ['Diajukan', 'Disetujui']
 
 export interface PengajuanCuti {
   tanggalMulai: TanggalIso
@@ -19,9 +23,15 @@ type Rentang = Pick<PengajuanCuti, 'tanggalMulai' | 'tanggalAkhir'>
 export const lamaCuti = (p: Rentang, libur: DaftarHariLibur) =>
   jumlahHariKerja(p.tanggalMulai, p.tanggalAkhir, libur)
 
-/** beririsan(mulai, akhir): tanggalMulai <= akhir and tanggalAkhir >= mulai (ujung yang bersentuhan ikut). */
-export const beririsan = (p: Rentang, mulai: TanggalIso, akhir: TanggalIso) =>
-  p.tanggalMulai <= akhir && p.tanggalAkhir >= mulai
+/** Periode yang sudah valid: akhir >= mulai. */
+export interface Periode {
+  mulai: TanggalIso
+  akhir: TanggalIso
+}
+
+/** beririsan(periode): tanggalMulai <= akhir and tanggalAkhir >= mulai (ujung yang bersentuhan ikut). */
+export const beririsan = (p: Rentang, periode: Periode) =>
+  p.tanggalMulai <= periode.akhir && p.tanggalAkhir >= periode.mulai
 
 export interface PeriodeInput {
   mulai: string
@@ -34,8 +44,10 @@ export const PESAN_AKHIR_WAJIB = 'Tanggal akhir wajib diisi'
 export const PESAN_AKHIR_SEBELUM_MULAI = 'Tanggal akhir tidak boleh lebih awal dari tanggal mulai'
 export const PESAN_TANGGAL_TIDAK_VALID = 'Format tanggal tidak valid (contoh: 2026-12-31)'
 
-/** validasiPeriode (alur 2a, 2b US-1a). Kosong = valid. */
-export function validasiPeriode(p: { mulai?: unknown; akhir?: unknown }): GalatPeriode {
+export type HasilPeriode = { periode: Periode } | { galat: GalatPeriode }
+
+/** validasiPeriode (alur 2a, 2b US-1a): masukan mentah (boleh kosong) -> `Periode` yang valid atau galat per kolom. */
+export function validasiPeriode(p: { mulai?: unknown; akhir?: unknown }): HasilPeriode {
   const galat: GalatPeriode = {}
   const mulai = typeof p.mulai === 'string' ? p.mulai.trim() : ''
   const akhir = typeof p.akhir === 'string' ? p.akhir.trim() : ''
@@ -44,7 +56,7 @@ export function validasiPeriode(p: { mulai?: unknown; akhir?: unknown }): GalatP
   if (!akhir) galat.akhir = PESAN_AKHIR_WAJIB
   else if (!adalahTanggalIso(akhir)) galat.akhir = PESAN_TANGGAL_TIDAK_VALID
   if (!galat.mulai && !galat.akhir && akhir < mulai) galat.akhir = PESAN_AKHIR_SEBELUM_MULAI
-  return galat
+  return Object.keys(galat).length > 0 ? { galat } : { periode: { mulai, akhir } }
 }
 
 /** urutkanDariTanggalMulaiPalingAwal (tidak mengubah masukan). */
@@ -62,10 +74,9 @@ export const urutkanDariPalingBaru = <T extends Rentang>(daftar: readonly T[]): 
 /** Pengajuan US-1a: status Diajukan atau Disetujui yang beririsan dengan periode, urut tanggalMulai naik. */
 export function pengajuanPadaPeriode<T extends PengajuanCuti>(
   daftar: readonly T[],
-  mulai: TanggalIso,
-  akhir: TanggalIso,
+  periode: Periode,
 ): T[] {
   return urutkanDariTanggalMulaiPalingAwal(
-    daftar.filter((p) => (p.status === 'Diajukan' || p.status === 'Disetujui') && beririsan(p, mulai, akhir)),
+    daftar.filter((p) => STATUS_PADA_DAFTAR.includes(p.status) && beririsan(p, periode)),
   )
 }

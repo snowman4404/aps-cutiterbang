@@ -1,8 +1,8 @@
 // Drizzle tables. Names follow the spec's shared vocabulary (docs/spesifikasi.md §3).
 // Run `npm run db:generate` after changing this file.
 import { sql } from 'drizzle-orm'
-import { check, integer, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core'
-import type { Peran, StatusPengajuanCuti, ZonaWaktu } from '@cutiterbang/domain'
+import { check, index, integer, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core'
+import { DAFTAR_STATUS_BOOKING, DAFTAR_STATUS_PENGAJUAN, type Peran, type ZonaWaktu } from '@cutiterbang/domain'
 
 export const akun = sqliteTable('akun', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -36,7 +36,7 @@ export const pengajuanCuti = sqliteTable('pengajuan_cuti', {
     .references(() => pegawai.id),
   tanggalMulai: text('tanggal_mulai').notNull(),
   tanggalAkhir: text('tanggal_akhir').notNull(),
-  status: text('status').$type<StatusPengajuanCuti>().notNull(),
+  status: text('status', { enum: DAFTAR_STATUS_PENGAJUAN }).notNull(),
 })
 
 export const hariLibur = sqliteTable('hari_libur', {
@@ -78,9 +78,68 @@ export const penerbangan = sqliteTable(
   },
   (t) => [
     unique().on(t.nomorPenerbangan, t.tanggalKeberangkatan),
-    // inv KotaBerbeda. TidakOverbooking penuh (sisaKursi >= 0) dijaga AlokasiKursi (Fase 4); di sini hanya jumlah kursi tak negatif.
+    // inv KotaBerbeda. TidakOverbooking penuh (sisaKursi >= 0) dijaga AlokasiKursi (tabel alokasi_kursi); di sini hanya jumlah kursi tak negatif.
     check('penerbangan_kota_berbeda', sql`${t.asalId} <> ${t.tujuanId}`),
     check('penerbangan_jumlah_kursi_tak_negatif', sql`${t.jumlahKursi} >= 0`),
+  ],
+)
+
+// Modul tiket: Pemesanan (akar agregat) dan Penumpang (bagian dari Pemesanan; menyimpan salinan DataWajib).
+export const pemesanan = sqliteTable(
+  'pemesanan',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    kode: text('kode').notNull(), // KodeBookingReference sebagaimana ditampilkan
+    kodeNormal: text('kode_normal').notNull().unique(), // normal() = trim + huruf kecil; inv KodeUnik (G3)
+    status: text('status', { enum: DAFTAR_STATUS_BOOKING }).notNull(),
+    waktuDibuat: integer('waktu_dibuat', { mode: 'timestamp_ms' }).notNull(),
+    penerbanganId: integer('penerbangan_id')
+      .notNull()
+      .references(() => penerbangan.id),
+    pemesanId: integer('pemesan_id')
+      .notNull()
+      .references(() => akun.id),
+  },
+  (t) => [
+    check('pemesanan_status_sah', sql`${t.status} in ('WaitingForThePayment', 'Booked', 'Confirmed', 'Cancelled')`),
+    index('pemesanan_pemesan').on(t.pemesanId),
+  ],
+)
+
+export const penumpang = sqliteTable(
+  'penumpang',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    pemesananId: integer('pemesanan_id')
+      .notNull()
+      .references(() => pemesanan.id, { onDelete: 'cascade' }),
+    /** Peran `mewakili`: akun yang diwakili baris penumpang ini (Tiket Saya, US-8c). */
+    akunId: integer('akun_id').references(() => akun.id),
+    // Salinan DataWajib saat pemesanan dibuat.
+    namaLengkap: text('nama_lengkap').notNull(),
+    nomorIdentitas: text('nomor_identitas').notNull(),
+    tanggalLahir: text('tanggal_lahir').notNull(),
+    nomorTelepon: text('nomor_telepon').notNull(),
+    email: text('email').notNull(),
+  },
+  (t) => [index('penumpang_pemesanan').on(t.pemesananId), index('penumpang_akun').on(t.akunId)],
+)
+
+// AlokasiKursi: entitas desain di dalam agregat Penerbangan (spec "Batas agregat"). Satu baris per Pemesanan yang
+// tidak Cancelled; sisaKursi = jumlahKursi - SUM(jumlah). Dibuat bersyarat secara atomik (lihat antarmukaPemesanan).
+export const alokasiKursi = sqliteTable(
+  'alokasi_kursi',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    penerbanganId: integer('penerbangan_id')
+      .notNull()
+      .references(() => penerbangan.id),
+    kodeNormal: text('kode_normal').notNull().unique(),
+    jumlah: integer('jumlah').notNull(),
+  },
+  (t) => [
+    check('alokasi_kursi_jumlah_positif', sql`${t.jumlah} > 0`),
+    index('alokasi_kursi_penerbangan').on(t.penerbanganId),
   ],
 )
 

@@ -40,15 +40,17 @@ Phases run in order: each one builds on the data and screens of the one before. 
 - [x] US-3 Mencari penerbangan (no login)
 
 ## Phase 4: Booking core
-**Decisions:** G5 (does cancelling a Confirmed booking void its e-tiket?), G8 (does a validated trip stay recorded after cancellation?)
-- [ ] Domain: `KodeBookingReference` (case/space-insensitive, unique), `DataWajib` validation, `StatusBooking` state machine, `AlokasiKursi` (no overbooking)
-- [ ] Schema: `Pemesanan`, `Penumpang`, seat allocation. Replace the stub `jumlahPenumpangAktif` (always 0) in `apps/api/src/tiket/antarmukaKatalogPenerbangan.ts` with the real count, and add a sold-out seed flight (`sisaKursi` 0) once Pemesanan exists
-- [ ] US-2a Memesan tiket (contract C1) + "Tiket Saya"
-- [ ] US-2b Membatalkan pemesanan (contract C3)
+**Decided (2026-11-17):**
+- G5: cancelling a Confirmed booking keeps its `ETiket` row (the spec's `implies` invariant holds), but the e-tiket is shown as void ("Dibatalkan", not valid for travel) everywhere it appears. The ETiket itself lands in Phase 6 (US-8d); Phase 4 only allows the Confirmed → Cancelled transition.
+- G8: cancelling a booking removes it from every member's `perjalananTercatat`, so recorded trips are only non-cancelled bookings. Built with US-5b in Phase 5 (C3 must unlink it once that table exists).
+- [x] Domain: `KodeBookingReference` (case/space-insensitive, unique), `DataWajib` validation, `StatusBooking` state machine, `AlokasiKursi` (no overbooking)
+- [x] Schema: `Pemesanan`, `Penumpang`, seat allocation. Replace the stub `jumlahPenumpangAktif` (always 0) in `apps/api/src/tiket/antarmukaKatalogPenerbangan.ts` with the real count, and add a sold-out seed flight (`sisaKursi` 0) once Pemesanan exists
+- [x] US-2a Memesan tiket (contract C1) + "Tiket Saya"
+- [x] US-2b Membatalkan pemesanan (contract C3)
 
 ## Phase 5: Member Frequent Traveller
 - [ ] US-5a Memperbarui data profil (`Profil`, `/statusProfil`)
-- [ ] US-5b Memvalidasi tiket (`catatPerjalanan`)
+- [ ] US-5b Memvalidasi tiket (`catatPerjalanan`); G8: C3 unlinks a cancelled booking from `perjalananTercatat`
 - [ ] US-4 Mencari penerbangan multi-destinasi
 - [ ] US-6a Menyaring hasil pencarian berdasarkan jam keberangkatan
 - [ ] US-6b Membandingkan harga penerbangan
@@ -60,7 +62,7 @@ Phases run in order: each one builds on the data and screens of the one before. 
 - [ ] US-8b Memesan tiket atas nama pengunjung (contract C2)
 - [ ] US-8c Melihat tiket yang dipesankan
 - [ ] Simulator endpoints: payment (→ Booked), airline confirmation (→ Confirmed)
-- [ ] US-8d Menerima e-tiket melalui email (stored outbox, viewable in the UI)
+- [ ] US-8d Menerima e-tiket melalui email (stored outbox, viewable in the UI); G5: e-tiket of a cancelled booking shown as void
 - [ ] US-7 Memantau status booking
 - [ ] US-9 Memeriksa status booking dengan kode booking reference
 

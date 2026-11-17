@@ -56,6 +56,10 @@ export const DEMO = {
   lintasZona: { asal: 'Jakarta', tujuan: 'Jayapura', hariKe: 5 },
   /** Rute valid tanpa penerbangan sama sekali (untuk "Penerbangan tidak ditemukan"). */
   tanpaPenerbangan: { asal: 'Medan', tujuan: 'Jayapura' },
+  /** Satu kursi, sudah terjual oleh pemesanan seed (CTB004): sisaKursi 0, jadi tidak muncul di pencarian. */
+  habis: { asal: 'Yogyakarta', tujuan: 'Surabaya', hariKe: 4, nomorPenerbangan: 'SJ901', waktuBerangkat: '09:00', waktuTiba: '10:00', harga: 650_000, maskapai: 'Samudra Jaya', jumlahKursi: 1 },
+  /** Satu kursi, belum terjual: sisaKursi 1 (untuk demo "Kursi sudah habis" saat dua orang memesan kursi terakhir). */
+  kursiTerakhir: { asal: 'Yogyakarta', tujuan: 'Surabaya', hariKe: 4, nomorPenerbangan: 'BW902', waktuBerangkat: '13:00', waktuTiba: '14:00', harga: 700_000, maskapai: 'Bayu Wings', jumlahKursi: 1 },
 } as const
 
 const ZONA = new Map(KOTA.map((k) => [k.nama, k.zonaWaktu]))
@@ -149,6 +153,21 @@ export function buatDataPenerbangan(hariIni: TanggalIso): {
       waktuTiba: '01:30',
       harga: 900_000,
       jumlahKursi: 120,
+    })
+  }
+
+  // (c) Penerbangan demo pemesanan: satu rute Yogyakarta -> Surabaya yang hanya berisi dua penerbangan satu kursi.
+  for (const d of [DEMO.habis, DEMO.kursiTerakhir]) {
+    penerbangan.push({
+      nomorPenerbangan: d.nomorPenerbangan,
+      maskapai: d.maskapai,
+      asal: d.asal,
+      tujuan: d.tujuan,
+      tanggalKeberangkatan: tambahHari(hariIni, d.hariKe),
+      waktuBerangkat: d.waktuBerangkat,
+      waktuTiba: d.waktuTiba,
+      harga: d.harga,
+      jumlahKursi: d.jumlahKursi,
     })
   }
 

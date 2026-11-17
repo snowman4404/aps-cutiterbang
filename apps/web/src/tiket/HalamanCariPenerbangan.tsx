@@ -1,7 +1,7 @@
 import type { FormEvent } from 'react'
 import { PESAN_PENERBANGAN_TIDAK_DITEMUKAN } from '@cutiterbang/domain'
 import { formatTanggalDenganHari } from '../lib/tanggal.ts'
-import { Alert, Button, Card, EmptyState, Field, Input, PageTitle } from '../ui/index.ts'
+import { Alert, Button, Card, EmptyState, Field, Input, LinkTombol, PageTitle } from '../ui/index.ts'
 import { formatHarga, formatWaktu } from './format.ts'
 import { PilihKota } from './PilihKota.tsx'
 import { useCariPenerbangan } from './useCariPenerbangan.ts'
@@ -87,6 +87,9 @@ export default function HalamanCariPenerbangan() {
                       Sisa {f.sisaKursi} kursi
                     </span>
                   </div>
+                  <LinkTombol to={`/pesan/${f.id}`} varian="primary" ukuran="sm" aria-label={`Pesan ${f.nomorPenerbangan}`}>
+                    Pesan
+                  </LinkTombol>
                 </Card>
               </li>
             ))}

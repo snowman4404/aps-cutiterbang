@@ -1,22 +1,27 @@
 // Boundary "Antarmuka Data Kepegawaian": membungkus kueri DB untuk Pegawai, PengajuanCuti, HariLibur.
-// (Data Kepegawaian adalah sistem luar yang disimulasikan dengan data seed.)
-import { and, asc, eq, gte, inArray, lte } from 'drizzle-orm'
-import type { PengajuanCuti, StatusPengajuanCuti, TanggalIso } from '@cutiterbang/domain'
+// (Data Kepegawaian adalah sistem luar yang disimulasikan dengan data seed.) Hanya mengambil baris mentah;
+// aturan cuti (status, irisan periode, tahun berjalan, urutan) diterapkan oleh PengendaliCuti lewat domain.
+import { asc, eq } from 'drizzle-orm'
+import type { Pegawai, PegawaiRingkas, PengajuanCuti, TanggalIso } from '@cutiterbang/domain'
 import type { Db } from '../db/client.ts'
 import { hariLibur, pegawai, pengajuanCuti } from '../db/schema.ts'
 
-export interface PegawaiRingkas {
-  nama: string
-  nomorIndukPegawai: string
-}
-export interface PegawaiDenganJatah extends PegawaiRingkas {
-  jatahCutiTahunan: number
-}
-export interface PengajuanDenganPegawai extends PengajuanCuti, PegawaiRingkas {
+export interface PegawaiDenganId extends Pegawai {
   id: number
 }
+export interface PengajuanDenganId extends PengajuanCuti {
+  id: number
+}
+export interface PengajuanDenganPegawai extends PengajuanDenganId, PegawaiRingkas {}
 
 export function antarmukaDataKepegawaian(db: Db) {
+  const kolomPengajuan = {
+    id: pengajuanCuti.id,
+    tanggalMulai: pengajuanCuti.tanggalMulai,
+    tanggalAkhir: pengajuanCuti.tanggalAkhir,
+    status: pengajuanCuti.status,
+  }
+
   return {
     /** ambilDaftarPegawai: nama + NIP, urut nama. */
     async ambilDaftarPegawai(): Promise<PegawaiRingkas[]> {
@@ -26,7 +31,7 @@ export function antarmukaDataKepegawaian(db: Db) {
         .orderBy(asc(pegawai.nama))
     },
 
-    async cariPegawai(nip: string): Promise<(PegawaiDenganJatah & { id: number }) | null> {
+    async cariPegawai(nip: string): Promise<PegawaiDenganId | null> {
       const baris = await db.select().from(pegawai).where(eq(pegawai.nomorIndukPegawai, nip)).get()
       return baris ?? null
     },
@@ -35,45 +40,17 @@ export function antarmukaDataKepegawaian(db: Db) {
       return (await db.select({ tanggal: hariLibur.tanggal }).from(hariLibur)).map((b) => b.tanggal)
     },
 
-    /** ambilPengajuanBeririsan: Diajukan atau Disetujui yang beririsan dengan [mulai, akhir]. */
-    async ambilPengajuanBeririsan(mulai: TanggalIso, akhir: TanggalIso): Promise<PengajuanDenganPegawai[]> {
+    /** Semua pengajuan semua status beserta nama pegawai (bahan ambilPengajuanBeririsan di PengendaliCuti). */
+    async ambilSemuaPengajuan(): Promise<PengajuanDenganPegawai[]> {
       return db
-        .select({
-          id: pengajuanCuti.id,
-          nama: pegawai.nama,
-          nomorIndukPegawai: pegawai.nomorIndukPegawai,
-          tanggalMulai: pengajuanCuti.tanggalMulai,
-          tanggalAkhir: pengajuanCuti.tanggalAkhir,
-          status: pengajuanCuti.status,
-        })
+        .select({ ...kolomPengajuan, nama: pegawai.nama, nomorIndukPegawai: pegawai.nomorIndukPegawai })
         .from(pengajuanCuti)
         .innerJoin(pegawai, eq(pegawai.id, pengajuanCuti.pegawaiId))
-        .where(
-          and(
-            inArray(pengajuanCuti.status, ['Diajukan', 'Disetujui'] satisfies StatusPengajuanCuti[]),
-            lte(pengajuanCuti.tanggalMulai, akhir),
-            gte(pengajuanCuti.tanggalAkhir, mulai),
-          ),
-        )
     },
 
-    /** ambilCutiDisetujui(nip, tahun): Disetujui dengan tanggalMulai pada tahun itu. */
-    async ambilCutiDisetujui(pegawaiId: number, tahun: number): Promise<PengajuanCuti[]> {
-      return db
-        .select({
-          tanggalMulai: pengajuanCuti.tanggalMulai,
-          tanggalAkhir: pengajuanCuti.tanggalAkhir,
-          status: pengajuanCuti.status,
-        })
-        .from(pengajuanCuti)
-        .where(
-          and(
-            eq(pengajuanCuti.pegawaiId, pegawaiId),
-            eq(pengajuanCuti.status, 'Disetujui'),
-            gte(pengajuanCuti.tanggalMulai, `${tahun}-01-01`),
-            lte(pengajuanCuti.tanggalMulai, `${tahun}-12-31`),
-          ),
-        )
+    /** Semua pengajuan satu pegawai, semua status dan tahun (bahan ambilJatahDanCutiDisetujui di PengendaliCuti). */
+    async ambilPengajuanPegawai(pegawaiId: number): Promise<PengajuanDenganId[]> {
+      return db.select(kolomPengajuan).from(pengajuanCuti).where(eq(pengajuanCuti.pegawaiId, pegawaiId))
     },
   }
 }

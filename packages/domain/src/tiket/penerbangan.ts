@@ -96,7 +96,7 @@ export const memenuhiKotaBerbeda = (f: Pick<Penerbangan, 'asal' | 'tujuan'>): bo
 
 /**
  * inv TidakOverbooking: self.sisaKursi >= 0. Basis data hanya menjaga `jumlah_kursi >= 0`;
- * perlindungan penuh terhadap overbooking adalah `AlokasiKursi` (Fase 4).
+ * perlindungan penuh terhadap overbooking adalah `AlokasiKursi` (tabel alokasi_kursi, lihat alokasiKursi.ts).
  */
 export const memenuhiTidakOverbooking = (jumlahKursi: number, jumlahPenumpangAktif: number): boolean =>
   sisaKursi(jumlahKursi, jumlahPenumpangAktif) >= 0

@@ -1,6 +1,7 @@
 // /api/cuti: semua rute hanya untuk HRDManajer dan hanya-baca.
 import { Hono } from 'hono'
-import type { TanggalIso } from '@cutiterbang/domain'
+import { PESAN_TIDAK_ADA_AKSES, type TanggalIso } from '@cutiterbang/domain'
+import { createMiddleware } from 'hono/factory'
 import { buatGuard, type Variabel } from '../akses/middleware.ts'
 import type { Db } from '../db/client.ts'
 import { antarmukaDataKepegawaian } from './antarmukaDataKepegawaian.ts'
@@ -9,10 +10,15 @@ import { buatPengendaliCuti } from './pengendaliCuti.ts'
 const PESAN_PEGAWAI_TIDAK_DITEMUKAN = 'Pegawai tidak ditemukan'
 
 export function ruteCuti(db: Db, hariIni: () => TanggalIso) {
-  const { butuhLogin, butuhPeran } = buatGuard(db)
+  const { butuhLogin } = buatGuard(db)
   const pengendali = buatPengendaliCuti(antarmukaDataKepegawaian(db), hariIni)
+  // periksaPeran milik control (HRDManajer); responsnya sama dengan `butuhPeran`.
+  const periksaPeran = createMiddleware<Variabel>(async (c, next) => {
+    if (!pengendali.periksaPeran(c.get('akun'))) return c.json({ pesan: PESAN_TIDAK_ADA_AKSES }, 403)
+    await next()
+  })
   const r = new Hono<Variabel>()
-  r.use('*', butuhLogin, butuhPeran('HRDManajer'))
+  r.use('*', butuhLogin, periksaPeran)
 
   r.get('/pengajuan', async (c) => {
     const hasil = await pengendali.tampilkanPengajuan(c.req.query('mulai'), c.req.query('akhir'))

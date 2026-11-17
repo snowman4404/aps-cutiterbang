@@ -100,6 +100,12 @@
   --radius-pill: 4px;
   /* Layar lebar = di atas 1100px; `max-desk:` untuk ponsel dan tablet. */
   --breakpoint-desk: 1101px;
+  /* Ukuran form: `max-w-form` (kartu/pilihan 420px), `sm:w-kolom-tanggal` (kolom tanggal 200px),
+     `sm:pt-label-field` (tinggi label + jarak Field, supaya tombol sejajar dengan kontrol), `text-stat` (angka besar). */
+  --container-form: 420px;
+  --spacing-kolom-tanggal: 200px;
+  --spacing-label-field: 22px;
+  --text-stat: 32px;
 }
 
 @layer base {

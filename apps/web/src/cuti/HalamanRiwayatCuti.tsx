@@ -1,15 +1,15 @@
-import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { panggil } from '../akses/api.ts'
+import type { PegawaiRingkas } from '@cutiterbang/domain'
 import { Alert, DataTable, EmptyState, PageTitle } from '../ui/index.ts'
 import { formatTanggal } from '../lib/tanggal.ts'
-import { formatLama, type PegawaiRingkas } from './format.ts'
+import { useMuat } from '../lib/useMuat.ts'
+import { formatLama } from './format.ts'
 import { PilihPegawai } from './PilihPegawai.tsx'
 
 interface Riwayat {
   pegawai: PegawaiRingkas
   tahun: number
-  riwayat: { tanggalMulai: string; tanggalAkhir: string; lamaCuti: number }[]
+  riwayat: { id: number; tanggalMulai: string; tanggalAkhir: string; lamaCuti: number }[]
   pesan?: string
 }
 
@@ -17,24 +17,7 @@ interface Riwayat {
 export default function HalamanRiwayatCuti() {
   const [params, setParams] = useSearchParams()
   const nip = params.get('nip') ?? ''
-  const [data, setData] = useState<Riwayat | null>(null)
-  const [galat, setGalat] = useState('')
-
-  useEffect(() => {
-    let batal = false
-    setData(null)
-    setGalat('')
-    if (nip) {
-      void panggil<Riwayat>(`/cuti/pegawai/${encodeURIComponent(nip)}/riwayat`).then((r) => {
-        if (batal) return
-        if (r.status === 200) setData(r.data)
-        else setGalat(r.data.pesan ?? 'Terjadi kesalahan, coba lagi')
-      })
-    }
-    return () => {
-      batal = true
-    }
-  }, [nip])
+  const { data, galat } = useMuat<Riwayat>(nip ? `/cuti/pegawai/${encodeURIComponent(nip)}/riwayat` : null)
 
   return (
     <section className="flex flex-col gap-6">
@@ -59,7 +42,7 @@ export default function HalamanRiwayatCuti() {
               </thead>
               <tbody>
                 {data.riwayat.map((c) => (
-                  <tr key={c.tanggalMulai}>
+                  <tr key={c.id}>
                     <td>{formatTanggal(c.tanggalMulai)}</td>
                     <td>{formatTanggal(c.tanggalAkhir)}</td>
                     <td className="num">{formatLama(c.lamaCuti)}</td>

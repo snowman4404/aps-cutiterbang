@@ -3,18 +3,36 @@
 import { fileURLToPath } from 'node:url'
 import { buatDb, type Db } from './client.ts'
 import { jalankanMigrasi } from './migrate.ts'
-import { akun, hariLibur, kota, maskapai, pegawai, pengajuanCuti, penerbangan, sesi } from './schema.ts'
+import {
+  akun,
+  alokasiKursi,
+  hariLibur,
+  kota,
+  maskapai,
+  pegawai,
+  pemesanan,
+  pengajuanCuti,
+  penerbangan,
+  penumpang,
+  sesi,
+} from './schema.ts'
 import { seed } from './seed.ts'
 
 export async function resetData(db: Db) {
-  await db.delete(sesi)
-  await db.delete(akun)
-  await db.delete(pengajuanCuti)
-  await db.delete(pegawai)
-  await db.delete(hariLibur)
-  await db.delete(penerbangan)
-  await db.delete(maskapai)
-  await db.delete(kota)
+  // Satu langkah atomik (urutan menghormati FK: anak dulu); seed di luar batch.
+  await db.batch([
+    db.delete(alokasiKursi),
+    db.delete(penumpang),
+    db.delete(pemesanan),
+    db.delete(sesi),
+    db.delete(akun),
+    db.delete(pengajuanCuti),
+    db.delete(pegawai),
+    db.delete(hariLibur),
+    db.delete(penerbangan),
+    db.delete(maskapai),
+    db.delete(kota),
+  ])
   await seed(db)
 }
 

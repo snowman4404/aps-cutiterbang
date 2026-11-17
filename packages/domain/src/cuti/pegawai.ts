@@ -8,6 +8,9 @@ export interface Pegawai {
   jatahCutiTahunan: number
 }
 
+/** Pegawai tanpa jatah: daftar pilihan dan judul halaman (dipakai API dan web). */
+export type PegawaiRingkas = Pick<Pegawai, 'nama' | 'nomorIndukPegawai'>
+
 /**
  * cutiDisetujuiTahunIni: status Disetujui dan tahun tanggalMulai = tahun `hariIni`.
  * G9: cuti yang melewati 31 Des dihitung penuh ke tahun tanggalMulai.

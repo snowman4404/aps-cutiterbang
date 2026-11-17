@@ -13,7 +13,8 @@ const KELAS: Record<VarianPill, string> = {
 export const kelasPill = (varian: VarianPill) => KELAS[varian]
 
 // Pemetaan yang disarankan untuk StatusBooking (diterapkan di fase pemesanan):
-//   Confirmed -> positive, Booked -> accent, WaitingForThePayment -> warning, Cancelled -> neutral.
+//   Confirmed -> positive, Booked -> accent, WaitingForThePayment -> warning, Cancelled -> neutral
+//   (dipakai di tiket/format.ts: VARIAN_STATUS_BOOKING).
 export function Pill({ varian = 'neutral', children }: { varian?: VarianPill; children: ReactNode }) {
   return (
     <span

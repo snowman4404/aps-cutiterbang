@@ -160,13 +160,13 @@ describe('guard peran', () => {
 
   test('Member lolos guard CalonPenumpang', async () => {
     const cookie = await masuk('member1@cutiterbang.test')
-    const res = await kirim('/tiket/saya/ping', undefined, cookie, 'GET')
+    const res = await kirim('/pemesanan/saya', undefined, cookie, 'GET')
     expect(res.status).toBe(200)
   })
 
   test('Pengunjung dan ManajerTravel ditolak guard CalonPenumpang', async () => {
     for (const email of ['pengunjung1@cutiterbang.test', 'travel@cutiterbang.test']) {
-      const res = await kirim('/tiket/saya/ping', undefined, await masuk(email), 'GET')
+      const res = await kirim('/pemesanan/saya', undefined, await masuk(email), 'GET')
       expect(res.status).toBe(403)
     }
   })

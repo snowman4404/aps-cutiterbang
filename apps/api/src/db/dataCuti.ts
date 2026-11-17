@@ -1,7 +1,7 @@
 // Data seed modul cuti (stand-in Data Kepegawaian). Murni data, tanpa I/O, supaya tes dan e2e
 // bisa memakainya. Semua tanggal dihitung dari `tahun` (tahun berjalan saat seed) agar demo selalu
 // bermakna; cuti dipasang pada Senin terdekat supaya jumlah hari kerjanya stabil dari tahun ke tahun.
-import { hariDalamMinggu, tambahHari, type StatusPengajuanCuti } from '@cutiterbang/domain'
+import { hariDalamMinggu, tahunDari, tambahHari, type StatusPengajuanCuti } from '@cutiterbang/domain'
 
 export const JATAH_CUTI_TAHUNAN = 12
 
@@ -64,25 +64,6 @@ export function buatDataCuti(tahun: number): {
     jatahCutiTahunan: JATAH_CUTI_TAHUNAN,
   }))
 
-  // Hari libur nasional (tanggal tetap, pendekatan) untuk tahun lalu, ini, dan depan.
-  const tetap: [number, number, string][] = [
-    [1, 1, 'Tahun Baru'],
-    [3, 20, 'Idulfitri (perkiraan)'],
-    [3, 21, 'Idulfitri (perkiraan)'],
-    [5, 1, 'Hari Buruh'],
-    [5, 14, 'Kenaikan Yesus Kristus (perkiraan)'],
-    [6, 1, 'Hari Lahir Pancasila'],
-    [8, 17, 'Hari Kemerdekaan RI'],
-    [12, 25, 'Hari Natal'],
-  ]
-  const hariLibur: DataHariLibur[] = []
-  for (const t of [tahun - 1, tahun, tahun + 1]) {
-    for (const [b, h, keterangan] of tetap) hariLibur.push({ tanggal: tgl(t, b, h), keterangan })
-  }
-  // Cuti bersama demo di hari Rabu: cuti Dewi melewati hari libur dan akhir pekan sekaligus.
-  const rabuBersama = tambahHari(senin(tahun, 9, 14), 2)
-  hariLibur.push({ tanggal: rabuBersama, keterangan: 'Cuti bersama (demo)' })
-
   const p = (nip: string, mulai: string, hari: number, status: StatusPengajuanCuti): DataPengajuan => ({
     nomorIndukPegawai: nip,
     tanggalMulai: mulai,
@@ -133,6 +114,28 @@ export function buatDataCuti(tahun: number): {
     p(NIP.lestari, M(7, 20), 4, 'Disetujui'),
     p(NIP.lestari, M(12, 14), 4, 'Diajukan'),
   ]
+
+  // Hari libur nasional (tanggal tetap, pendekatan) untuk SETIAP tahun yang disentuh pengajuan mana pun, supaya
+  // tidak ada hari libur yang terhitung sebagai hari kerja di cuti seed.
+  const tahunPengajuan = pengajuan.flatMap((q) => [tahunDari(q.tanggalMulai), tahunDari(q.tanggalAkhir)])
+  const tahunAwal = Math.min(tahun, ...tahunPengajuan)
+  const tahunAkhir = Math.max(tahun, ...tahunPengajuan)
+  const tetap: [number, number, string][] = [
+    [1, 1, 'Tahun Baru'],
+    [3, 20, 'Idulfitri (perkiraan)'],
+    [3, 21, 'Idulfitri (perkiraan)'],
+    [5, 1, 'Hari Buruh'],
+    [5, 14, 'Kenaikan Yesus Kristus (perkiraan)'],
+    [6, 1, 'Hari Lahir Pancasila'],
+    [8, 17, 'Hari Kemerdekaan RI'],
+    [12, 25, 'Hari Natal'],
+  ]
+  const hariLibur: DataHariLibur[] = []
+  for (let t = tahunAwal; t <= tahunAkhir; t++) {
+    for (const [b, h, keterangan] of tetap) hariLibur.push({ tanggal: tgl(t, b, h), keterangan })
+  }
+  // Cuti bersama demo di hari Rabu: cuti Dewi melewati hari libur dan akhir pekan sekaligus.
+  hariLibur.push({ tanggal: tambahHari(senin(tahun, 9, 14), 2), keterangan: 'Cuti bersama (demo)' })
 
   return { pegawai, hariLibur, pengajuan }
 }

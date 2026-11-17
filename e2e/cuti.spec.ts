@@ -50,7 +50,7 @@ test.describe('US-1a Melihat pengajuan cuti per periode', () => {
     await page.getByLabel('Tanggal akhir').fill(`${TAHUN}-12-31`)
     await page.getByRole('button', { name: 'Tampilkan' }).click()
 
-    const harapan = pengajuanPadaPeriode(DATA.pengajuan, `${TAHUN}-01-01`, `${TAHUN}-12-31`)
+    const harapan = pengajuanPadaPeriode(DATA.pengajuan, { mulai: `${TAHUN}-01-01`, akhir: `${TAHUN}-12-31` })
     expect(harapan.length).toBeGreaterThan(5)
     expect(harapan.map((p) => p.tanggalMulai)).toEqual(harapan.map((p) => p.tanggalMulai).sort())
     const baris = page.getByRole('table', { name: 'Daftar pengajuan cuti' }).locator('tbody tr')
@@ -85,12 +85,29 @@ test.describe('US-1a Melihat pengajuan cuti per periode', () => {
     await expect(baris.first().locator('td').nth(3)).toHaveText(hari(lamaCuti(dewi, LIBUR)))
   })
 
+  test('mengubah periode lalu mencari lagi hanya menampilkan hasil yang baru', async ({ page }) => {
+    await masukHrd(page)
+    await page.goto('/cuti/pengajuan')
+    const baris = page.getByRole('table', { name: 'Daftar pengajuan cuti' }).locator('tbody tr')
+    const cari = async (mulai: string, akhir: string) => {
+      await page.getByLabel('Tanggal mulai').fill(mulai)
+      await page.getByLabel('Tanggal akhir').fill(akhir)
+      await page.getByRole('button', { name: 'Tampilkan' }).click()
+    }
+    await cari(`${TAHUN}-01-01`, `${TAHUN}-12-31`)
+    await expect(baris).toHaveCount(pengajuanPadaPeriode(DATA.pengajuan, { mulai: `${TAHUN}-01-01`, akhir: `${TAHUN}-12-31` }).length)
+    const ditolak = DATA.pengajuan.find((p) => p.status === 'Ditolak')!
+    await cari(ditolak.tanggalMulai, ditolak.tanggalAkhir)
+    await expect(page.getByText('Tidak ada pengajuan cuti pada periode ini')).toBeVisible()
+    await expect(page.getByRole('table')).toHaveCount(0)
+  })
+
   test('periode tanpa pengajuan menampilkan pesan', async ({ page }) => {
     await masukHrd(page)
     await page.goto('/cuti/pengajuan')
     // Hanya cuti Ditolak pada periode ini, jadi hasilnya kosong.
     const ditolak = DATA.pengajuan.find((p) => p.status === 'Ditolak')!
-    expect(pengajuanPadaPeriode(DATA.pengajuan, ditolak.tanggalMulai, ditolak.tanggalAkhir)).toEqual([])
+    expect(pengajuanPadaPeriode(DATA.pengajuan, { mulai: ditolak.tanggalMulai, akhir: ditolak.tanggalAkhir })).toEqual([])
     await page.getByLabel('Tanggal mulai').fill(ditolak.tanggalMulai)
     await page.getByLabel('Tanggal akhir').fill(ditolak.tanggalAkhir)
     await page.getByRole('button', { name: 'Tampilkan' }).click()
