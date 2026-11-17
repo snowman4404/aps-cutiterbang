@@ -268,6 +268,14 @@ describe('US-8b POST /api/travel/pemesanan (kontrak C2)', () => {
     expect(await jumlahPemesanan()).toBe(N_PEMESANAN)
   })
 
+  test('urutan: G7 sebelum bentuk id, penerbangan tidak ada (404) sebelum id yang bukan pengunjung', async () => {
+    const cookie = await masuk(TRAVEL)
+    const f = (await penerbanganPadat())[0]!
+    expect(await (await pesanUntuk(cookie, f.id, [idAkun[P1], idAkun[P1], 'x'])).json()).toEqual({ pesan: PESAN_PENGUNJUNG_GANDA })
+    for (const daftar of [[idAkun[P1], 'x'], [0]]) expect((await pesanUntuk(cookie, 999999, daftar)).status).toBe(404)
+    expect(await jumlahPemesanan()).toBe(N_PEMESANAN)
+  })
+
   test('penerbangan tidak ada: 404', async () => {
     for (const id of [999999, 'abc', null]) {
       const res = await pesanUntuk(await masuk(TRAVEL), id, [idAkun[P1]])

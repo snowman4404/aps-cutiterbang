@@ -33,7 +33,8 @@ import { akun, alokasiKursi, pemesanan, penerbangan, penumpang } from '../db/sch
 import { seed } from '../db/seed.ts'
 import { antarmukaKatalogPenerbangan } from './antarmukaKatalogPenerbangan.ts'
 import { adalahKodeBentrok, antarmukaPemesanan } from './antarmukaPemesanan.ts'
-import { buatPengendaliPemesanan, GALAT_KODE_TIDAK_UNIK } from './pengendaliPemesanan.ts'
+import { buatPembuatPemesanan, GALAT_KODE_TIDAK_UNIK } from './pembuatPemesanan.ts'
+import { buatPengendaliPemesanan } from './pengendaliPemesanan.ts'
 
 const HARI_INI = '2026-11-17'
 const SEKARANG = new Date('2026-11-17T01:00:00Z') // 08:00 WIB
@@ -501,10 +502,12 @@ describe('KodeUnik dan atomisitas (basis data)', () => {
     const [{ id: pemesanId }] = await db.select({ id: akun.id }).from(akun).limit(1)
     const f = await idPadat()
     expect(await data.alokasiKursi(baru('AAAAAA', f.id, pemesanId), 1)).toBe('diterima')
-    const pengendali = buatPengendaliPemesanan(katalog, data, () => HARI_INI, () => SEKARANG, () => deret[i++ % deret.length]!)
-    expect(await pengendali.buatKodeUnik()).toBeNull()
-    expect(await pengendali.buatKodeUnik()).toBe('SSSSSS') // 0.5 * 32 = indeks 16 pada himpunan huruf kode
+    const acak = () => deret[i++ % deret.length]!
+    const pembuat = buatPembuatPemesanan(katalog, data, () => SEKARANG, acak)
+    expect(await pembuat.buatKodeUnik()).toBeNull()
+    expect(await pembuat.buatKodeUnik()).toBe('SSSSSS') // 0.5 * 32 = indeks 16 pada himpunan huruf kode
 
+    const pengendali = buatPengendaliPemesanan(katalog, data, () => HARI_INI, () => SEKARANG, acak)
     const [pemesan] = await db.select().from(akun).where(eq(akun.email, 'penumpang@cutiterbang.test'))
     const hasil = await pengendali.konfirmasi(pemesan!, f.id, DATA) // deret berlanjut: AAAAAA (dipakai) lalu SSSSSS
     expect(hasil).toMatchObject({ hasil: 'berhasil', pemesanan: { kode: 'SSSSSS' } })

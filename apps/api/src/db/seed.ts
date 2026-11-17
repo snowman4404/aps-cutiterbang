@@ -4,16 +4,12 @@ import { and, eq, sql } from 'drizzle-orm'
 import {
   AKUN_DEMO,
   hariIniWib,
-  nomorETiketUntuk,
   normalKode,
-  penerimaETiket,
   SANDI_DEMO,
+  siapkanETiket,
   STATUS_DIBATALKAN,
-  subjekETiket,
   tahunDari,
-  teksETiket,
 } from '@cutiterbang/domain'
-import { antarmukaKatalogPenerbangan, keHasilPencarian } from '../tiket/antarmukaKatalogPenerbangan.ts'
 import { hashSandi } from '../akses/sandi.ts'
 import { buatDb, type Db } from './client.ts'
 import { dijalankanLangsung } from './cli.ts'
@@ -93,24 +89,31 @@ async function seedProfil(db: Db) {
 async function seedPemesanan(db: Db, hariIni: string) {
   const sudahAda = new Set((await db.select({ kodeNormal: pemesanan.kodeNormal }).from(pemesanan)).map((baris) => baris.kodeNormal))
   const idAkun = new Map((await db.select({ id: akun.id, email: akun.email }).from(akun)).map((akunBaris) => [akunBaris.email, akunBaris.id]))
-  const katalog = antarmukaKatalogPenerbangan(db)
+  const kotaMenurutId = new Map((await db.select().from(kota)).map((kotaBaris) => [kotaBaris.id, kotaBaris]))
   const peranAkun = new Map(AKUN_DEMO.map((a) => [a.email, a.peran]))
   for (const data of buatDataPemesanan(hariIni)) {
     const kodeNormal = normalKode(data.kode)
     if (sudahAda.has(kodeNormal)) continue
-    const [terbang] = await db
-      .select({ id: penerbangan.id })
+    const [baris] = await db
+      .select({ terbang: penerbangan, maskapai: maskapai.nama })
       .from(penerbangan)
+      .innerJoin(maskapai, eq(maskapai.id, penerbangan.maskapaiId))
       .where(and(eq(penerbangan.nomorPenerbangan, data.nomorPenerbangan), eq(penerbangan.tanggalKeberangkatan, data.tanggalKeberangkatan)))
+    const terbang = baris?.terbang
     const pemesanId = idAkun.get(data.akunEmail)
     if (!terbang || pemesanId === undefined || data.penumpang.some((orang) => !idAkun.has(orang.akunEmail))) continue
     const punyaETiket = data.status === 'Confirmed' || data.punyaETiket === true
     const waktuTerbit = new Date(data.waktuDibuat + 3_600_000)
-    const nomorETiket = nomorETiketUntuk(data.kode)
-    const penerima = punyaETiket
-      ? penerimaETiket(peranAkun.get(data.akunEmail)!, data.penumpang.map((orang) => ({ profilEmail: PROFIL_DEMO[orang.akunEmail]?.email ?? null })))
-      : []
-    const isiEmail = penerima.length > 0 ? teksETiket({ nomorETiket, kode: data.kode, namaPenumpang: data.penumpang.map((orang) => orang.data.namaLengkap), penerbangan: keHasilPencarian((await katalog.ambilPenerbangan(terbang.id))!, 0) }) : ''
+    const eTiket = siapkanETiket(
+      data.kode,
+      peranAkun.get(data.akunEmail)!,
+      data.penumpang.map((orang) => ({
+        akunId: idAkun.get(orang.akunEmail)!,
+        namaLengkap: orang.data.namaLengkap,
+        profilEmail: PROFIL_DEMO[orang.akunEmail]?.email ?? null,
+      })),
+      { ...terbang, maskapai: baris.maskapai, asal: kotaMenurutId.get(terbang.asalId)!, tujuan: kotaMenurutId.get(terbang.tujuanId)! },
+    )
     await db.batch([
       db.insert(pemesanan).values({
         kode: data.kode,
@@ -134,19 +137,16 @@ async function seedPemesanan(db: Db, hariIni: string) {
         ? [
             db.insert(etiket).values({
               pemesananId: sql`(select id from pemesanan where kode_normal = ${kodeNormal})`,
-              nomorETiket,
+              nomorETiket: eTiket.nomorETiket,
               waktuTerbit,
             }),
           ]
         : []),
       // Email e-tiket dikirim semenit setelah terbit (di bawah batas 5 menit, Asumsi 12).
-      ...penerima.map((kepada) =>
+      ...(punyaETiket ? eTiket.email : []).map((e) =>
         db.insert(emailTerkirim).values({
           pemesananId: sql`(select id from pemesanan where kode_normal = ${kodeNormal})`,
-          akunId: idAkun.get(data.penumpang.find((orang) => PROFIL_DEMO[orang.akunEmail]?.email === kepada)!.akunEmail)!,
-          kepada,
-          subjek: subjekETiket(data.kode),
-          isi: isiEmail,
+          ...e,
           waktuKirim: new Date(waktuTerbit.getTime() + 60_000),
         }),
       ),

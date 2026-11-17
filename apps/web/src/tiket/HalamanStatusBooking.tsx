@@ -5,6 +5,9 @@ import {
   NILAI_SEMUA_STATUS,
   PESAN_TIDAK_ADA_PEMESANAN,
   PILIHAN_FILTER_STATUS,
+  sistemLuarUntuk,
+  type SistemLuar,
+  type StatusBooking,
   type BarisStatusBooking,
   type FilterStatus,
 } from '@cutiterbang/domain'
@@ -12,6 +15,22 @@ import { useMuat } from '../lib/useMuat.ts'
 import { Alert, Button, DataTable, EmptyState, Field, Kode, Memuat, PageTitle, Pill, Select } from '../ui/index.ts'
 import { VARIAN_STATUS_BOOKING } from './format.ts'
 import { useSimulator } from './useSimulator.ts'
+
+/** Tombol simulator per sistem luar (bukan bagian dari US-7); status yang memunculkannya ditentukan `sistemLuarUntuk`. */
+const LABEL_SIMULATOR: Record<SistemLuar, string> = {
+  pembayaran: 'Simulasikan pembayaran',
+  maskapai: 'Simulasikan konfirmasi maskapai',
+}
+
+function TombolSimulator({ status, disabled, picu }: { status: StatusBooking; disabled: boolean; picu: (sistem: SistemLuar) => void }) {
+  const sistem = sistemLuarUntuk(status)
+  if (!sistem) return null
+  return (
+    <Button varian="ghost" ukuran="sm" disabled={disabled} onClick={() => picu(sistem)}>
+      {LABEL_SIMULATOR[sistem]}
+    </Button>
+  )
+}
 
 // US-7 di sisi web (boundary "Halaman Status Booking", control PengendaliStatusBooking di API): semua pemesanan terbaru dulu,
 // lalu satu pilihan status (2, 3). Filter tinggal di URL (`?status=`); "Semua status" = tanpa parameter (2a);
@@ -87,16 +106,7 @@ export default function HalamanStatusBooking() {
                     </td>
                     {simulator.aktif && (
                       <td>
-                        {b.status === 'WaitingForThePayment' && (
-                          <Button varian="ghost" ukuran="sm" disabled={simulator.sibuk} onClick={() => void simulator.picu('pembayaran', b.kode)}>
-                            Simulasikan pembayaran
-                          </Button>
-                        )}
-                        {b.status === 'Booked' && (
-                          <Button varian="ghost" ukuran="sm" disabled={simulator.sibuk} onClick={() => void simulator.picu('maskapai', b.kode)}>
-                            Simulasikan konfirmasi maskapai
-                          </Button>
-                        )}
+                        <TombolSimulator status={b.status} disabled={simulator.sibuk} picu={(sistem) => void simulator.picu(sistem, b.kode)} />
                       </td>
                     )}
                   </tr>

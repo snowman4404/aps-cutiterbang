@@ -185,7 +185,8 @@ test.describe('US-8b Memesan tiket atas nama pengunjung', () => {
     await cariUntukPengunjung(page, RUTE.asal, RUTE.tujuan, tambahHari(HARI_INI, RUTE.hariKe), '1')
     await page.getByTestId('penerbangan').first().getByRole('link', { name: /Pesan untuk pengunjung/ }).click()
     await page.getByRole('button', { name: 'Konfirmasi pemesanan' }).click()
-    await expect(page.getByText(PESAN_DAFTAR_PENGUNJUNG_KOSONG)).toBeVisible()
+    // Petunjuk jumlah memakai frasa yang sama, jadi pesan galatnya dicari di dalam alert.
+    await expect(page.getByRole('alert').filter({ hasText: PESAN_DAFTAR_PENGUNJUNG_KOSONG })).toBeVisible()
     await expect(page.getByTestId('tiket')).toHaveCount(0)
   })
 

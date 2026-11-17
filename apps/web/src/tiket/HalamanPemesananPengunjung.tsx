@@ -53,7 +53,7 @@ export default function HalamanPemesananPengunjung() {
       }
       setPesan('')
       const respons = await panggil<{ pemesanan?: TiketSaya; pesan?: string }>('/travel/pemesanan', {
-        body: { idPenerbangan: penerbangan.id, pengunjung: daftarSah.ids },
+        body: { idPenerbangan: penerbangan.id, pengunjung: daftarSah.daftar },
       })
       if (respons.status === 201 && respons.data.pemesanan) setDibuat(respons.data.pemesanan)
       else setPesan(respons.data.pesan ?? PESAN_GALAT_UMUM)
@@ -102,7 +102,7 @@ export default function HalamanPemesananPengunjung() {
           {galatPengunjung && <Alert varian="negative">{galatPengunjung}</Alert>}
           {jumlahDicari !== null && (
             <p className="text-sm text-muted" data-testid="jumlah-dicari">
-              Pencarian untuk {jumlahDicari} penumpang. Pilih satu atau lebih pengunjung.
+              Pencarian untuk {jumlahDicari} penumpang. Pilih satu atau lebih pengunjung terdaftar
             </p>
           )}
           <fieldset className="flex flex-col gap-3">

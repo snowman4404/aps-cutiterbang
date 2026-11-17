@@ -7,12 +7,11 @@ import { antarmukaKatalogPenerbangan } from './antarmukaKatalogPenerbangan.ts'
 import { antarmukaLayananEmail } from './antarmukaLayananEmail.ts'
 import { antarmukaPemesanan } from './antarmukaPemesanan.ts'
 import { antarmukaPengunjung } from './antarmukaPengunjung.ts'
-import { buatPengendaliETiket, type HasilUbahStatus } from './pengendaliETiket.ts'
-import { buatPengendaliPembayaran } from './pengendaliPembayaran.ts'
+import { buatPengendaliETiket } from './pengendaliETiket.ts'
+import { ubahStatusSistemLuar, type HasilUbahStatus } from './ubahStatusSistemLuar.ts'
 
 export function ruteSimulasi(db: Db, sekarang: () => Date, aktif: () => boolean) {
   const data = antarmukaPemesanan(db)
-  const pembayaran = buatPengendaliPembayaran(data)
   const eTiket = buatPengendaliETiket(antarmukaKatalogPenerbangan(db), data, antarmukaPengunjung(db), antarmukaLayananEmail(db), sekarang)
 
   const rute = new Hono()
@@ -24,8 +23,8 @@ export function ruteSimulasi(db: Db, sekarang: () => Date, aktif: () => boolean)
       ? c.json({ pemesanan: hasil.pemesanan })
       : c.json({ pesan: hasil.pesan }, hasil.hasil === 'tidakDitemukan' ? 404 : 409)
 
-  // Antarmuka Pembayaran: pembayaranBerhasil(kode)
-  rute.post('/pembayaran/:kode', async (c) => jawab(c, await pembayaran.pembayaranBerhasil(c.req.param('kode'))))
+  // Antarmuka Pembayaran: pembayaranBerhasil(kode) = ubahStatus(Booked), tanpa efek masuk.
+  rute.post('/pembayaran/:kode', async (c) => jawab(c, await ubahStatusSistemLuar(data, 'pembayaran', c.req.param('kode'))))
   // Antarmuka Maskapai: konfirmasiKursi(kode)
   rute.post('/maskapai/:kode', async (c) => jawab(c, await eTiket.ubahStatusMenjadiConfirmed(c.req.param('kode'))))
 

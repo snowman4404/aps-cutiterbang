@@ -13,10 +13,10 @@ import {
   PILIHAN_FILTER_STATUS,
   pesanTransisiTidakSah,
   ringkasanPenerbangan,
-  statusAsal,
+  sistemLuarUntuk,
   teksETiket,
   transisi,
-  PEMICU_SISTEM_LUAR,
+  TRANSISI_SISTEM_LUAR,
   type IsiETiket,
 } from '../index.ts'
 
@@ -100,11 +100,17 @@ describe('US-7 filter status', () => {
 })
 
 describe('simulator sistem luar', () => {
-  test('status asal diturunkan dari mesin status', () => {
-    expect(statusAsal('pembayaran')).toBe('WaitingForThePayment')
-    expect(statusAsal('maskapai')).toBe('Booked')
-    expect(transisi(statusAsal('pembayaran'), PEMICU_SISTEM_LUAR.pembayaran)).toBe('Booked')
-    expect(transisi(statusAsal('maskapai'), PEMICU_SISTEM_LUAR.maskapai)).toBe('Confirmed')
+  test('TRANSISI_SISTEM_LUAR sesuai mesin status: hanya status asalnya yang menerima pemicu', () => {
+    expect(transisi(TRANSISI_SISTEM_LUAR.pembayaran.dari, TRANSISI_SISTEM_LUAR.pembayaran.pemicu)).toBe('Booked')
+    expect(transisi(TRANSISI_SISTEM_LUAR.maskapai.dari, TRANSISI_SISTEM_LUAR.maskapai.pemicu)).toBe('Confirmed')
+    for (const { dari, pemicu } of Object.values(TRANSISI_SISTEM_LUAR))
+      expect(DAFTAR_STATUS_BOOKING.filter((s) => transisi(s, pemicu) !== null)).toEqual([dari])
+  })
+
+  test('sistemLuarUntuk: sistem yang memicu transisi dari status itu', () => {
+    expect(DAFTAR_STATUS_BOOKING.map(sistemLuarUntuk)).toEqual(
+      DAFTAR_STATUS_BOOKING.map((s) => (s === 'WaitingForThePayment' ? 'pembayaran' : s === 'Booked' ? 'maskapai' : null)),
+    )
   })
 
   test('pesan transisi tidak sah menyebut label status', () => {

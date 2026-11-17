@@ -2,18 +2,10 @@
 // pengiriman nyata. Pengiriman ikut dalam batch perubahan status (lihat PengendaliETiket), jadi tidak pernah ada email
 // untuk pemesanan yang tidak jadi Confirmed.
 import { desc, eq, sql } from 'drizzle-orm'
-import { normalKode, type EmailETiketDto } from '@cutiterbang/domain'
+import { normalKode, type EmailETiket, type EmailETiketDto } from '@cutiterbang/domain'
 import type { Db } from '../db/client.ts'
 import { emailTerkirim, pemesanan } from '../db/schema.ts'
 import type { PernyataanBatch } from './antarmukaPemesanan.ts'
-
-export interface EmailBaru {
-  /** Pengunjung yang profilnya memberi alamat `kepada`. */
-  akunId: number
-  kepada: string
-  subjek: string
-  isi: string
-}
 
 export function antarmukaLayananEmail(db: Db) {
   return {
@@ -22,7 +14,7 @@ export function antarmukaLayananEmail(db: Db) {
      * itu sudah punya e-tiket bernomor `nomorETiket` (jadi hanya untuk pemesanan Confirmed) dan alamat itu belum dikirimi.
      * `waktuKirim` dicatat saat itu juga (batas 5 menit, Asumsi 12).
      */
-    kirimETiket(kode: string, nomorETiket: string, e: EmailBaru, waktuKirim: Date): PernyataanBatch {
+    kirimETiket(kode: string, nomorETiket: string, e: EmailETiket, waktuKirim: Date): PernyataanBatch {
       return db.run(sql`
         INSERT INTO email_terkirim (pemesanan_id, akun_id, kepada, subjek, isi, waktu_kirim)
         SELECT m.id, ${e.akunId}, ${e.kepada}, ${e.subjek}, ${e.isi}, ${waktuKirim.getTime()} FROM pemesanan m

@@ -14,10 +14,10 @@ import { buatPengendaliStatusBooking } from './pengendaliStatusBooking.ts'
 export function ruteTravel(db: Db, hariIni: () => TanggalIso, sekarang: () => Date) {
   const { butuhLogin, butuhPeran } = buatGuard(db)
   const katalog = antarmukaKatalogPenerbangan(db)
+  const data = antarmukaPemesanan(db)
   const pencarian = buatPengendaliPencarian(katalog, hariIni, sekarang)
-  const pemesananPengunjung = buatPengendaliPemesananPengunjung(katalog, antarmukaPemesanan(db), antarmukaPengunjung(db), hariIni, sekarang)
-
-  const statusBooking = buatPengendaliStatusBooking(katalog, antarmukaPemesanan(db))
+  const pemesananPengunjung = buatPengendaliPemesananPengunjung(katalog, data, antarmukaPengunjung(db), hariIni, sekarang)
+  const statusBooking = buatPengendaliStatusBooking(katalog, data)
 
   const rute = new Hono<Variabel>()
   rute.use('*', butuhLogin, butuhPeran('ManajerTravel'))

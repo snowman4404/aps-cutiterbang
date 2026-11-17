@@ -14,6 +14,7 @@ import {
   salinDataProfil,
   saringSisaKursi,
   validasiDaftarPengunjung,
+  idPengunjungDari,
   validasiIsianPencarianPengunjung,
   validasiJumlahPenumpang,
   DATA_PROFIL_KOSONG,
@@ -84,15 +85,18 @@ describe('US-8b validasiDaftarPengunjung (C2 pre, G7)', () => {
     expect(validasiDaftarPengunjung([3, 4, 3])).toEqual({ pesan: PESAN_PENGUNJUNG_GANDA })
   })
 
-  test('id yang bukan bilangan bulat positif bukan pengunjung terdaftar', () => {
-    for (const buruk of [[0], [-1], [1.5], ['1'], [null]]) {
-      expect(validasiDaftarPengunjung(buruk)).toEqual({ pesan: PESAN_PENGUNJUNG_TIDAK_TERDAFTAR })
-    }
+  test('G7 diperiksa sebelum bentuk id: [1, 1, "x"] tetap ganda', () => {
+    expect(validasiDaftarPengunjung([1, 1, 'x'])).toEqual({ pesan: PESAN_PENGUNJUNG_GANDA })
+  })
+
+  test('idPengunjungDari: id yang bukan bilangan bulat positif bukan pengunjung terdaftar', () => {
+    for (const buruk of [[0], [-1], [1.5], ['1'], [null], [1, 'x']]) expect(idPengunjungDari(buruk)).toBeNull()
+    expect(idPengunjungDari([9, 2, 5])).toEqual([9, 2, 5])
   })
 
   test('satu atau lebih id unik sah, urutan dipertahankan', () => {
-    expect(validasiDaftarPengunjung([7])).toEqual({ ids: [7] })
-    expect(validasiDaftarPengunjung([9, 2, 5])).toEqual({ ids: [9, 2, 5] })
+    expect(validasiDaftarPengunjung([7])).toEqual({ daftar: [7] })
+    expect(validasiDaftarPengunjung([9, 2, 5])).toEqual({ daftar: [9, 2, 5] })
   })
 
   test('kata-kata pesan', () => {

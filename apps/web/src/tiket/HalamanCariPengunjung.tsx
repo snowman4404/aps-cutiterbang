@@ -2,12 +2,12 @@ import type { FormEvent } from 'react'
 import { Alert, Button, Card, Field, Input, LinkTombol, PageTitle } from '../ui/index.ts'
 import { DaftarPenerbangan } from './KartuPenerbangan.tsx'
 import { PilihKota } from './PilihKota.tsx'
-import { useCariPengunjung } from './useCariPengunjung.ts'
+import { useCariPengunjung } from './useCariPenerbangan.ts'
 
 // US-8a: Formulir Pencarian Pengunjung + Hasil Pencarian Pengunjung (hanya Manajer Travel). Pengambilan data dan sinkronisasi URL
-// ada di `useCariPengunjung`; halaman ini hanya menampilkan. Extension point "hasil pencarian": tombol "Pesan untuk pengunjung" (US-8b).
+// ada di `useCariPengunjung` (useCariPenerbangan.ts); halaman ini hanya menampilkan. Extension point "hasil pencarian": tombol "Pesan untuk pengunjung" (US-8b).
 export default function HalamanCariPengunjung() {
-  const { kota, pesanKota, isian, ubahIsian, cari, galat, pesan, sibuk, hasil, jumlahDicari } = useCariPengunjung()
+  const { kota, pesanKota, isian, ubahIsian, cari, galat, pesan, sibuk, hasil, isianUrl } = useCariPengunjung()
 
   function kirimPencarian(event: FormEvent) {
     event.preventDefault()
@@ -76,7 +76,7 @@ export default function HalamanCariPengunjung() {
           label="Hasil pencarian untuk pengunjung"
           aksi={(penerbangan) => (
             <LinkTombol
-              to={`/travel/pesan/${penerbangan.id}?jumlah=${encodeURIComponent(jumlahDicari)}`}
+              to={`/travel/pesan/${penerbangan.id}?jumlah=${encodeURIComponent(isianUrl.jumlah)}`}
               varian="primary"
               ukuran="sm"
               aria-label={`Pesan untuk pengunjung ${penerbangan.nomorPenerbangan}`}

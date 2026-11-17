@@ -1,6 +1,6 @@
-import { DAFTAR_STATUS_BOOKING, LABEL_STATUS_BOOKING, transisi, type PemicuBooking, type StatusBooking } from './pemesanan.ts'
+import { DAFTAR_STATUS_BOOKING, LABEL_STATUS_BOOKING, type StatusBooking } from './pemesanan.ts'
 
-// US-7 (memantau status booking), US-9 (memeriksa kode) dan simulator sistem luar. Murni, tanpa I/O.
+// US-7 (memantau status booking) dan US-9 (memeriksa kode booking reference). Murni, tanpa I/O.
 
 /** US-7 ekstensi 3a. */
 export const PESAN_TIDAK_ADA_PEMESANAN = 'Tidak ada pemesanan dengan status ini'
@@ -41,27 +41,4 @@ export interface HasilCekKode {
   penumpang: string[]
   nomorPenerbangan: string
   tanggalKeberangkatan: string
-}
-
-/** Sistem luar yang disimulasikan: pembayaran (WaitingForThePayment -> Booked) dan maskapai (Booked -> Confirmed). */
-export type SistemLuar = 'pembayaran' | 'maskapai'
-
-export const PEMICU_SISTEM_LUAR: Record<SistemLuar, PemicuBooking> = {
-  pembayaran: 'pembayaranBerhasil',
-  maskapai: 'konfirmasiMaskapai',
-}
-
-/** Status yang boleh menerima pemicu sistem luar menurut mesin status (satu status per pemicu). */
-export const statusAsal = (sistem: SistemLuar): StatusBooking =>
-  DAFTAR_STATUS_BOOKING.find((s) => transisi(s, PEMICU_SISTEM_LUAR[sistem]) !== null)!
-
-/** Tidak ada teks spesifikasi: pemicu sistem luar pada status yang tidak mengizinkannya. */
-export const pesanTransisiTidakSah = (status: StatusBooking): string =>
-  `Status booking ${LABEL_STATUS_BOOKING[status]} tidak dapat diubah oleh simulasi ini`
-
-/** Ringkasan satu pemesanan dari sistem luar. */
-export interface HasilSimulasi {
-  kode: string
-  status: StatusBooking
-  label: string
 }

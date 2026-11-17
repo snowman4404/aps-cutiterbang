@@ -1,5 +1,6 @@
 // Control PengendaliPemesananPengunjung (US-8b, kontrak C2): manajer travel memesan untuk satu atau lebih pengunjung.
 import {
+  idPengunjungDari,
   PESAN_PENGUNJUNG_TIDAK_TERDAFTAR,
   pesanProfilTidakLengkap,
   salinDataProfil,
@@ -50,8 +51,9 @@ export function buatPengendaliPemesananPengunjung(
     const f = Number.isInteger(idPenerbangan) ? await katalog.ambilPenerbangan(idPenerbangan) : null
     if (!f) return { hasil: 'tidakDitemukan' }
 
-    const terpilih = await pengunjung.denganId(daftar.ids)
-    if (terpilih.length !== daftar.ids.length) return { hasil: 'galat', pesan: PESAN_PENGUNJUNG_TIDAK_TERDAFTAR }
+    const ids = idPengunjungDari(daftar.daftar)
+    const terpilih = ids ? await pengunjung.denganId(ids) : []
+    if (!ids || terpilih.length !== ids.length) return { hasil: 'galat', pesan: PESAN_PENGUNJUNG_TIDAK_TERDAFTAR }
 
     // 5, 5a: statusProfil setiap pengunjung; penumpang = salinan data Profil (AC3).
     const penumpang: PenumpangBaris[] = []

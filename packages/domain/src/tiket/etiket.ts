@@ -57,3 +57,41 @@ export function teksETiket(e: IsiETiket): string {
     `Tiba: ${f.tujuan.nama} ${f.waktuTiba} ${singkatanZona(f.tujuan.zonaWaktu)}`,
   ].join('\n')
 }
+
+/** Penumpang sebuah pemesanan saat e-tiket diterbitkan: nama pada baris Penumpang dan email Profil akun yang diwakilinya. */
+export interface PenumpangETiket {
+  akunId: number
+  namaLengkap: string
+  profilEmail: string | null
+}
+
+/** Satu email e-tiket untuk Layanan Email (`kirimETiket(e, email)`). */
+export interface EmailETiket {
+  akunId: number
+  kepada: string
+  subjek: string
+  isi: string
+}
+
+/**
+ * terbitkanETiket() dan penerimaETiket() (US-8d langkah 2 dan 3): nomor e-tiket dan satu email per alamat penerima (G6),
+ * masing-masing dikaitkan dengan akun pengunjung pemilik alamat itu. Pemesanan Calon Penumpang: tanpa email.
+ */
+export function siapkanETiket(
+  kode: string,
+  peranPemesan: Peran,
+  penumpang: readonly PenumpangETiket[],
+  penerbangan: IsiETiket['penerbangan'],
+): { nomorETiket: string; email: EmailETiket[] } {
+  const nomorETiket = nomorETiketUntuk(kode)
+  const penerima = penerimaETiket(peranPemesan, penumpang)
+  if (penerima.length === 0) return { nomorETiket, email: [] }
+  const isi = teksETiket({ nomorETiket, kode, namaPenumpang: penumpang.map((p) => p.namaLengkap), penerbangan })
+  const email = penerima.map((kepada) => ({
+    akunId: penumpang.find((p) => p.profilEmail?.trim() === kepada)!.akunId,
+    kepada,
+    subjek: subjekETiket(kode),
+    isi,
+  }))
+  return { nomorETiket, email }
+}

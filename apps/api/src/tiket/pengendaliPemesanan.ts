@@ -10,10 +10,8 @@ import {
 import type { Akun } from '../db/schema.ts'
 import type { AntarmukaKatalogPenerbangan } from './antarmukaKatalogPenerbangan.ts'
 import type { AntarmukaPemesanan } from './antarmukaPemesanan.ts'
-import { buatPembuatPemesanan, GALAT_KODE_TIDAK_UNIK } from './pembuatPemesanan.ts'
+import { buatPembuatPemesanan } from './pembuatPemesanan.ts'
 import { keInformasiPenerbangan } from './tiketSaya.ts'
-
-export { GALAT_KODE_TIDAK_UNIK }
 
 export type HasilKonfirmasi =
   | { hasil: 'galat'; galat: GalatDataWajib }
@@ -62,5 +60,5 @@ export function buatPengendaliPemesanan(
     return pembuat.buat(f, akun, [{ akunId: akun.id, ...v.data }])
   }
 
-  return { informasiPenerbangan, siapkanRingkasan, validasiDataPenumpang, buatKodeUnik: pembuat.buatKodeUnik, konfirmasi }
+  return { informasiPenerbangan, siapkanRingkasan, validasiDataPenumpang, konfirmasi }
 }
