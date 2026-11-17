@@ -19,9 +19,8 @@ export default function HalamanValidasiTiket() {
   const [galatKode, setGalatKode] = useState('') // tandaiKolomSalah (2a)
   const [tampilan, setTampilan] = useState<Tampilan | null>(null)
   const [galatUmum, setGalatUmum] = useState('')
-  const [versi, setVersi] = useState(0) // memuat ulang perjalananTercatat setelah validasi
   const { sibuk, jalankan } = useAksi(setGalatUmum)
-  const perjalanan = useMuat<{ perjalanan: PerjalananTercatat[] }>(`/validasi-tiket/perjalanan?v=${versi}`)
+  const perjalanan = useMuat<{ perjalanan: PerjalananTercatat[] }>('/validasi-tiket/perjalanan') // dimuat ulang setelah validasi
 
   function kirim(event: FormEvent) {
     event.preventDefault()
@@ -36,7 +35,7 @@ export default function HalamanValidasiTiket() {
         setGalatKode(respons.data.galat.kode)
       } else if (respons.status === 200 && 'hasil' in respons.data) {
         setTampilan({ jenis: 'hasil', hasil: respons.data })
-        setVersi((v) => v + 1)
+        perjalanan.muatUlang()
       } else if (respons.data.pesan && (respons.status === 404 || respons.status === 409)) {
         setTampilan({ jenis: 'ditolak', pesan: respons.data.pesan })
       } else {

@@ -19,6 +19,15 @@ interface Pengajuan {
 
 type Hasil = { pengajuan: Pengajuan[]; pesan?: string }
 
+/** Nama kolom: judul tabel dan `data-label` sel (tampilan ponsel) dari satu sumber. */
+const KOLOM = {
+  nama: 'Nama pegawai',
+  mulai: 'Tanggal mulai',
+  akhir: 'Tanggal akhir',
+  lama: 'Lama cuti',
+  status: 'Status',
+} as const
+
 // US-1a: Halaman Daftar Pengajuan Cuti.
 export default function HalamanDaftarPengajuanCuti() {
   const [mulai, setMulai] = useState('')
@@ -92,21 +101,21 @@ export default function HalamanDaftarPengajuanCuti() {
           <DataTable aria-label="Daftar pengajuan cuti">
             <thead>
               <tr>
-                <th>Nama pegawai</th>
-                <th>Tanggal mulai</th>
-                <th>Tanggal akhir</th>
-                <th className="num">Lama cuti</th>
-                <th>Status</th>
+                <th>{KOLOM.nama}</th>
+                <th>{KOLOM.mulai}</th>
+                <th>{KOLOM.akhir}</th>
+                <th className="num">{KOLOM.lama}</th>
+                <th>{KOLOM.status}</th>
               </tr>
             </thead>
             <tbody>
               {hasil.pengajuan.map((pengajuan) => (
                 <tr key={pengajuan.id}>
-                  <td data-label="Nama pegawai">{pengajuan.namaPegawai}</td>
-                  <td data-label="Tanggal mulai">{formatTanggal(pengajuan.tanggalMulai)}</td>
-                  <td data-label="Tanggal akhir">{formatTanggal(pengajuan.tanggalAkhir)}</td>
-                  <td className="num" data-label="Lama cuti">{formatLama(pengajuan.lamaCuti)}</td>
-                  <td data-label="Status">
+                  <td data-label={KOLOM.nama}>{pengajuan.namaPegawai}</td>
+                  <td data-label={KOLOM.mulai}>{formatTanggal(pengajuan.tanggalMulai)}</td>
+                  <td data-label={KOLOM.akhir}>{formatTanggal(pengajuan.tanggalAkhir)}</td>
+                  <td className="num" data-label={KOLOM.lama}>{formatLama(pengajuan.lamaCuti)}</td>
+                  <td data-label={KOLOM.status}>
                     <Pill varian={VARIAN_STATUS[pengajuan.status]}>{pengajuan.status}</Pill>
                   </td>
                 </tr>

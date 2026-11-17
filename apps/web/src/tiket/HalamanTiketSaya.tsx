@@ -12,8 +12,7 @@ import { KartuTiket } from './KartuTiket.tsx'
 export default function HalamanTiketSaya() {
   const [params] = useSearchParams()
   const baru = params.get('baru')
-  const [versi, setVersi] = useState(0)
-  const { data, galat: galatMuat } = useMuat<{ pemesanan: TiketSaya[] }>(`/pemesanan/saya?v=${versi}`)
+  const { data, galat: galatMuat, muatUlang } = useMuat<{ pemesanan: TiketSaya[] }>('/pemesanan/saya')
 
   // Daftar terakhir yang diterima tetap tampil selama dimuat ulang, dan diperbarui langsung dari jawaban pembatalan.
   const [daftar, setDaftar] = useState<TiketSaya[] | null>(null)
@@ -39,7 +38,7 @@ export default function HalamanTiketSaya() {
           setDaftar((daftarLama) => daftarLama?.map((tiket) => (tiket.kode === dibatalkan.kode ? dibatalkan : tiket)) ?? daftarLama)
         } else {
           setPesan(respons.data.pesan ?? PESAN_GALAT_UMUM)
-          setVersi((versiLama) => versiLama + 1)
+          muatUlang()
         }
       } finally {
         setTarget(null)

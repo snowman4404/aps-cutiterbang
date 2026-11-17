@@ -61,13 +61,23 @@ Tanggal dihitung dari hari ini (WIB), karena data penerbangan diisi untuk hari i
 
 ## Simulator demo
 
-Pembayaran, konfirmasi maskapai dan layanan email berada di luar lingkup aplikasi, jadi semuanya disimulasikan. Menu **Simulator demo** di sidebar (terlihat oleh semua pengunjung situs) membuka halaman `/simulator` yang berisi:
+Pembayaran, konfirmasi maskapai dan layanan email berada di luar lingkup aplikasi, jadi semuanya disimulasikan. Menu **Simulator demo** di sidebar (terlihat oleh semua pengunjung situs, juga tanpa login) membuka halaman `/simulator` yang berisi:
 
 - semua pemesanan dengan tombol **Simulasikan pembayaran** (Waiting for the payment → Booked) dan **Simulasikan konfirmasi maskapai** (Booked → Confirmed, lalu e-tiket terbit dan email dikirim ke pengunjung);
-- kotak keluar email e-tiket;
-- tombol **Reset data demo** untuk mengembalikan semua data ke seed (semua pengguna ikut keluar).
+- kotak keluar email e-tiket.
+
+Tombol **Reset data demo** di sidebar mengembalikan semua data ke seed (semua pengguna ikut keluar).
 
 Simulator dan reset selalu aktif saat dijalankan secara lokal. Hanya bila `NODE_ENV=production` keduanya mati, kecuali `IZINKAN_RESET=1`.
+
+Variabel lingkungan opsional untuk API:
+
+| Variabel | Fungsi |
+| --- | --- |
+| `PORT` | Port server (bawaan 8787) |
+| `DATABASE_URL` | Lokasi basis data (bawaan `file:data/cutiterbang.db`) |
+| `IZINKAN_RESET=1` | Menyalakan simulator dan reset meskipun `NODE_ENV=production` |
+| `RESET_SAAT_MULAI=1` | Mengembalikan data ke seed setiap kali server mulai (bawaan: seed hanya mengisi yang belum ada) |
 
 ## Struktur
 

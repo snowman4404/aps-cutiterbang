@@ -14,6 +14,7 @@ import {
 import { buatDataPemesanan } from '../apps/api/src/db/dataPemesanan.ts'
 import { PROFIL_DEMO } from '../apps/api/src/db/dataProfil.ts'
 import { formatTanggalDenganHari } from '../apps/web/src/lib/tanggal.ts'
+import { periksaTabelPonsel } from './tataLetak.ts'
 
 // Phase 6 (simulator, US-8d, US-7, US-9). Seed dihitung dari hari ini (WIB); harapan dihitung dari data yang sama.
 const HARI_INI = hariIniWib()
@@ -312,5 +313,14 @@ test.describe('lebar ponsel (375px)', () => {
     await page.goto('/tiket-saya')
     await expect(kartu(page, 'CTB010').getByTestId('catatan-etiket')).toBeVisible()
     expect(await lebih()).toBeLessThanOrEqual(0)
+  })
+
+  test('tabel Status Booking dan Simulator demo menjadi blok label-nilai, semua kolom terlihat', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 })
+    await masuk(page, TRAVEL)
+    await page.goto('/travel/status')
+    await periksaTabelPonsel(page, 'Daftar status booking')
+    await page.goto('/simulator')
+    await periksaTabelPonsel(page, 'Pemesanan untuk simulator')
   })
 })

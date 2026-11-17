@@ -6,9 +6,11 @@ import { beforeAll, describe, expect, test } from 'vitest'
 import { buatApp } from './app.ts'
 import { buatDb } from './db/client.ts'
 import { jalankanMigrasi } from './db/migrate.ts'
-import { denganWeb } from './sajikanWeb.ts'
+import { sajikanWeb } from './sajikanWeb.ts'
 
-let app: ReturnType<typeof denganWeb>
+let app: ReturnType<typeof sajikanWeb>
+let api: ReturnType<typeof buatApp>
+const req = (path: string) => Promise.resolve(app.fetch(new Request(`http://localhost${path}`)))
 
 beforeAll(async () => {
   const dir = mkdtempSync(join(tmpdir(), 'web-dist-'))
@@ -17,30 +19,35 @@ beforeAll(async () => {
   writeFileSync(join(dir, 'assets', 'app.js'), 'console.log(1)')
   const db = buatDb(':memory:')
   await jalankanMigrasi(db)
-  app = denganWeb(buatApp(db), dir)
+  api = buatApp(db)
+  app = sajikanWeb(api, dir)
 })
 
-describe('denganWeb', () => {
+describe('sajikanWeb', () => {
+  test('tanpa build web (npm run dev): API dikembalikan apa adanya', () => {
+    expect(sajikanWeb(api, mkdtempSync(join(tmpdir(), 'web-kosong-')))).toBe(api)
+  })
+
   test('/api diteruskan ke API', async () => {
-    const res = await app.request('/api/health')
+    const res = await req('/api/health')
     expect(res.status).toBe(200)
     expect(((await res.json()) as { ok: boolean }).ok).toBe(true)
   })
 
   test('berkas build disajikan apa adanya', async () => {
-    const res = await app.request('/assets/app.js')
+    const res = await req('/assets/app.js')
     expect(res.status).toBe(200)
     expect(await res.text()).toBe('console.log(1)')
   })
 
   test.each(['/', '/travel/status', '/simulator'])('rute SPA %s mendapat index.html', async (path) => {
-    const res = await app.request(path)
+    const res = await req(path)
     expect(res.status).toBe(200)
     expect(await res.text()).toContain('<title>CutiTerbang</title>')
   })
 
   test('jalur /api yang tidak dikenal tetap 404, bukan index.html', async () => {
-    const res = await app.request('/api/tidak-ada')
+    const res = await req('/api/tidak-ada')
     expect(res.status).toBe(404)
     expect(await res.text()).not.toContain('<title>')
   })

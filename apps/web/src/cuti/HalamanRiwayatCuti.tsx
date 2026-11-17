@@ -13,6 +13,13 @@ interface Riwayat {
   pesan?: string
 }
 
+/** Nama kolom: judul tabel dan `data-label` sel (tampilan ponsel) dari satu sumber. */
+const KOLOM = {
+  mulai: 'Tanggal mulai',
+  akhir: 'Tanggal akhir',
+  lama: 'Lama cuti',
+} as const
+
 // US-1b: Halaman Riwayat Cuti.
 export default function HalamanRiwayatCuti() {
   const [params, setParams] = useSearchParams()
@@ -35,17 +42,17 @@ export default function HalamanRiwayatCuti() {
             <DataTable aria-label="Riwayat cuti">
               <thead>
                 <tr>
-                  <th>Tanggal mulai</th>
-                  <th>Tanggal akhir</th>
-                  <th className="num">Lama cuti</th>
+                  <th>{KOLOM.mulai}</th>
+                  <th>{KOLOM.akhir}</th>
+                  <th className="num">{KOLOM.lama}</th>
                 </tr>
               </thead>
               <tbody>
                 {data.riwayat.map((cuti) => (
                   <tr key={cuti.id}>
-                    <td data-label="Tanggal mulai">{formatTanggal(cuti.tanggalMulai)}</td>
-                    <td data-label="Tanggal akhir">{formatTanggal(cuti.tanggalAkhir)}</td>
-                    <td className="num" data-label="Lama cuti">{formatLama(cuti.lamaCuti)}</td>
+                    <td data-label={KOLOM.mulai}>{formatTanggal(cuti.tanggalMulai)}</td>
+                    <td data-label={KOLOM.akhir}>{formatTanggal(cuti.tanggalAkhir)}</td>
+                    <td className="num" data-label={KOLOM.lama}>{formatLama(cuti.lamaCuti)}</td>
                   </tr>
                 ))}
               </tbody>

@@ -1,26 +1,17 @@
-import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { serve } from '@hono/node-server'
 import { buatApp } from './app.ts'
 import { buatDb } from './db/client.ts'
-import { jalankanMigrasi } from './db/migrate.ts'
-import { resetData } from './db/reset.ts'
-import { seed } from './db/seed.ts'
-import { denganWeb } from './sajikanWeb.ts'
+import { siapkanDb } from './db/siapkan.ts'
+import { sajikanWeb } from './sajikanWeb.ts'
 
 const db = buatDb()
-await jalankanMigrasi(db)
-// Opsional: RESET_SAAT_MULAI=1 mengembalikan data ke seed tiap kali server mulai (tanggal seed relatif ke hari ini).
-if (process.env.RESET_SAAT_MULAI === '1') await resetData(db)
-else await seed(db) // idempoten: hanya mengisi yang belum ada
+await siapkanDb(db, { resetSaatMulai: process.env.RESET_SAAT_MULAI === '1' })
 
-// Bila hasil build web ada (npm run build), layanan ini juga menyajikannya: satu layanan Node untuk produksi.
-const DIR_WEB = fileURLToPath(new URL('../../web/dist', import.meta.url))
-const api = buatApp(db)
-const sajikanWeb = existsSync(`${DIR_WEB}/index.html`)
-const app = sajikanWeb ? denganWeb(api, DIR_WEB) : api
+// Bila hasil build web ada (npm run build), server ini juga menyajikannya: satu proses Node untuk mode produksi.
+const app = sajikanWeb(buatApp(db), fileURLToPath(new URL('../../web/dist', import.meta.url)))
 
 const port = Number(process.env.PORT ?? 8787)
 serve({ fetch: app.fetch, port }, (info) => {
-  console.log(`API listening on http://localhost:${info.port}/api${sajikanWeb ? ' (web app served at /)' : ''}`)
+  console.log(`Listening on http://localhost:${info.port} (API at /api)`)
 })

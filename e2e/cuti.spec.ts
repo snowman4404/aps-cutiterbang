@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { periksaTabelPonsel } from './tataLetak.ts'
 import type { Page } from '@playwright/test'
 import {
   hariIniWib,
@@ -197,4 +198,17 @@ test.describe('akses non-HRD', () => {
       await expect(page.getByLabel('Tanggal mulai')).toHaveCount(0)
     })
   }
+})
+
+test('lebar ponsel 375px: tabel pengajuan dan riwayat cuti menjadi blok label-nilai, semua kolom terlihat', async ({ page }) => {
+  await masukHrd(page) // di lebar desktop: penanda pengguna ada di sidebar, yang tersembunyi di ponsel
+  await page.setViewportSize({ width: 375, height: 800 })
+  await page.goto('/cuti/pengajuan')
+  await page.getByLabel('Tanggal mulai').fill(`${TAHUN}-01-01`)
+  await page.getByLabel('Tanggal akhir').fill(`${TAHUN}-12-31`)
+  await page.getByRole('button', { name: 'Tampilkan' }).click()
+  await periksaTabelPonsel(page, 'Daftar pengajuan cuti')
+  await page.goto('/cuti/riwayat')
+  await page.getByLabel('Pegawai').selectOption(NIP.gunawan)
+  await periksaTabelPonsel(page, 'Riwayat cuti')
 })
