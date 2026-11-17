@@ -8,14 +8,19 @@ import {
   PESAN_KOTA_SAMA,
   PESAN_TUJUAN_TIDAK_DIKENAL,
   rapikanIsian,
+  saringSisaKursi,
   urutkanDariHargaTermurah,
   urutkanMenurutWaktuBerangkat,
+  jumlahDariTeks,
   validasiIsianPencarian,
+  validasiIsianPencarianPengunjung,
   validasiSetiapSegmen,
   type GalatPencarian,
+  type GalatPencarianPengunjung,
   type GalatSegmen,
   type HasilPencarian,
   type IsianMentah,
+  type IsianMentahPengunjung,
   type SegmenMentah,
   type TanggalIso,
 } from '@cutiterbang/domain'
@@ -99,5 +104,24 @@ export function buatPengendaliPencarian(
     return { segmen: hasil }
   }
 
-  return { muatDaftarKota, validasiIsian, cariPenerbangan, cariMultiDestinasi }
+  /** validasiIsian(asal, tujuan, tanggal, jumlah) (US-8a langkah 2, 2a-2d): US-3 plus jumlah penumpang. Kosong = valid. */
+  async function validasiIsianPengunjung(mentah: IsianMentahPengunjung): Promise<GalatPencarianPengunjung> {
+    const galat = validasiIsianPencarianPengunjung(mentah, hariIni())
+    tandaiKotaTidakDikenal(mentah, galat, await ambilIdKotaDikenal())
+    return galat
+  }
+
+  /**
+   * cariUntukPengunjung(isian) (US-8a): validasiIsian, cocok() (tersedia, kota dan tanggal sama), saringSisaKursi(jumlah),
+   * urut waktu berangkat (cariCocok; story tidak menentukan urutan). Daftar kosong = 3a.
+   */
+  async function cariUntukPengunjung(
+    mentah: IsianMentahPengunjung,
+  ): Promise<{ galat: GalatPencarianPengunjung } | { penerbangan: HasilPencarian[] }> {
+    const galat = await validasiIsianPengunjung(mentah)
+    if (Object.keys(galat).length > 0) return { galat }
+    return { penerbangan: saringSisaKursi(await cariCocok(mentah), jumlahDariTeks(mentah.jumlah)!) }
+  }
+
+  return { muatDaftarKota, validasiIsian, cariPenerbangan, cariMultiDestinasi, validasiIsianPengunjung, cariUntukPengunjung }
 }

@@ -7,6 +7,9 @@ import { resetData } from './db/reset.ts'
 import { rutePenerbangan } from './tiket/rute.ts'
 import { rutePemesanan } from './tiket/rutePemesanan.ts'
 import { ruteProfil } from './tiket/ruteProfil.ts'
+import { ruteSimulasi } from './tiket/ruteSimulasi.ts'
+import { ruteTiketDipesankan } from './tiket/ruteTiketDipesankan.ts'
+import { ruteTravel } from './tiket/ruteTravel.ts'
 import { ruteValidasiTiket } from './tiket/ruteValidasiTiket.ts'
 
 /** Variabel lingkungan yang menentukan apakah reset data demo boleh dipakai. */
@@ -40,8 +43,13 @@ export function buatApp(db: Db, opsi: OpsiApp = {}) {
 
   app.route('/penerbangan', rutePenerbangan(db, () => opsi.hariIni ?? hariIniWib(), () => opsi.sekarang?.() ?? new Date()))
   app.route('/pemesanan', rutePemesanan(db, () => opsi.hariIni ?? hariIniWib(), () => opsi.sekarang?.() ?? new Date()))
+  app.route('/travel', ruteTravel(db, () => opsi.hariIni ?? hariIniWib(), () => opsi.sekarang?.() ?? new Date()))
+  app.route('/tiket-dipesankan', ruteTiketDipesankan(db, () => opsi.sekarang?.() ?? new Date()))
   app.route('/profil', ruteProfil(db, () => opsi.hariIni ?? hariIniWib()))
   app.route('/validasi-tiket', ruteValidasiTiket(db, () => opsi.hariIni ?? hariIniWib(), () => opsi.sekarang?.() ?? new Date()))
+
+  // Sistem luar yang disimulasikan (pembayaran, maskapai): sama dengan dev/reset, mati (404) di produksi kecuali IZINKAN_RESET=1.
+  app.route('/simulasi', ruteSimulasi(db, () => opsi.sekarang?.() ?? new Date(), resetAktif))
 
   // Hanya untuk demo/tes: kembalikan data ke seed tanpa menghapus file DB. Mati (404) di produksi kecuali IZINKAN_RESET=1.
   app.post('/dev/reset', async (c) => {

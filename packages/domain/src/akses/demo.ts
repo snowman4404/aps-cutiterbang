@@ -17,4 +17,5 @@ export const AKUN_DEMO: readonly AkunDemo[] = [
   { nama: 'Dimas Saputra', email: 'travel@cutiterbang.test', peran: 'ManajerTravel' },
   { nama: 'Maya Lestari', email: 'pengunjung1@cutiterbang.test', peran: 'Pengunjung' },
   { nama: 'Rizky Hidayat', email: 'pengunjung2@cutiterbang.test', peran: 'Pengunjung' },
+  { nama: 'Citra Anggraini', email: 'pengunjung3@cutiterbang.test', peran: 'Pengunjung' },
 ]

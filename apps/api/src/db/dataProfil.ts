@@ -8,14 +8,11 @@ export const PROFIL_DEMO: Record<string, DataProfil> = {
   'member1@cutiterbang.test': { ...PENUMPANG['member1@cutiterbang.test']! },
   // tidak lengkap (nomor identitas kosong): validasi tiket ditolak "Data profil tidak lengkap" (3a)
   'member2@cutiterbang.test': { ...PENUMPANG['member2@cutiterbang.test']!, nomorIdentitas: null },
-  'pengunjung1@cutiterbang.test': {
-    namaLengkap: 'Maya Lestari',
-    nomorIdentitas: '3171010404940004',
-    tanggalLahir: '1994-04-04',
-    nomorTelepon: '081234567004',
-    email: 'pengunjung1@cutiterbang.test',
-  },
-  // tidak lengkap: dipakai Fase 6 (US-8b ekstensi 5a)
+  // lengkap: penumpang CTB007 (US-8b, US-8c)
+  'pengunjung1@cutiterbang.test': { ...PENUMPANG['pengunjung1@cutiterbang.test']! },
+  // lengkap: pasangan pengunjung1 pada CTB007 dan pada pemesanan dua penumpang
+  'pengunjung3@cutiterbang.test': { ...PENUMPANG['pengunjung3@cutiterbang.test']! },
+  // tidak lengkap: dipakai US-8b ekstensi 5a
   'pengunjung2@cutiterbang.test': {
     ...DATA_PROFIL_KOSONG,
     namaLengkap: 'Rizky Hidayat',

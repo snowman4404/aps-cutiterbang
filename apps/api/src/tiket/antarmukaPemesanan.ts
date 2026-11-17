@@ -7,10 +7,11 @@ import {
   STATUS_DAPAT_DIBATALKAN,
   STATUS_DIBATALKAN,
   type DataWajib,
+  type Peran,
   type StatusBooking,
 } from '@cutiterbang/domain'
 import type { Db } from '../db/client.ts'
-import { alokasiKursi, pemesanan, penumpang, perjalananTercatat } from '../db/schema.ts'
+import { akun, alokasiKursi, etiket, pemesanan, penumpang, perjalananTercatat } from '../db/schema.ts'
 
 export interface PenumpangBaris extends DataWajib {
   /** Peran `mewakili`: selalu terisi (C1 dan C2 selalu mencatatnya). */
@@ -24,7 +25,11 @@ export interface PemesananBaris {
   waktuDibuat: Date
   penerbanganId: number
   pemesanId: number
+  /** Peran akun pemesan (menentukan `penerimaETiket()`, G6). */
+  peranPemesan: Peran
   penumpang: PenumpangBaris[]
+  /** ETiket (satu per pemesanan): ada hanya setelah Confirmed, tetap ada setelah Cancelled (G5). */
+  eTiket: { nomor: string; waktuTerbit: Date } | null
 }
 
 export interface PemesananBaru {
@@ -32,9 +37,12 @@ export interface PemesananBaru {
   penerbanganId: number
   pemesanId: number
   waktuDibuat: Date
-  /** Satu Penumpang yang mewakili `pemesanId`; datanya salinan DataWajib. */
-  data: DataWajib
+  /** Penumpang (satu atau lebih) beserta akun yang `mewakili` dan salinan DataWajib-nya; jumlah kursi = panjang daftar. */
+  penumpang: PenumpangBaris[]
 }
+
+/** Satu pernyataan SQL yang ikut dalam `db.batch` (efek masuk status). */
+export type PernyataanBatch = ReturnType<Db['run']>
 
 /** Hasil `alokasiKursi`: pemesanan dibuat bersama alokasinya, atau ditolak karena kursi tidak cukup. */
 export type HasilAlokasi = 'diterima' | 'ditolak'
@@ -47,14 +55,17 @@ export function adalahKodeBentrok(galat: unknown): boolean {
   return /UNIQUE constraint failed/i.test(pesan) && /kode_normal/.test(pesan)
 }
 
+const tiketDari = (e: typeof etiket.$inferSelect | undefined) => (e ? { nomor: e.nomorETiket, waktuTerbit: e.waktuTerbit } : null)
+
 export function antarmukaPemesanan(db: Db) {
   async function lengkapi(baris: (typeof pemesanan.$inferSelect)[]): Promise<PemesananBaris[]> {
     if (baris.length === 0) return []
-    const daftarPenumpang = await db
-      .select()
-      .from(penumpang)
-      .where(inArray(penumpang.pemesananId, baris.map((pesanan) => pesanan.id)))
-      .orderBy(penumpang.id)
+    const ids = baris.map((pesanan) => pesanan.id)
+    const [daftarPenumpang, daftarETiket, daftarPemesan] = await Promise.all([
+      db.select().from(penumpang).where(inArray(penumpang.pemesananId, ids)).orderBy(penumpang.id),
+      db.select().from(etiket).where(inArray(etiket.pemesananId, ids)),
+      db.select({ id: akun.id, peran: akun.peran }).from(akun).where(inArray(akun.id, [...new Set(baris.map((pesanan) => pesanan.pemesanId))])),
+    ])
     return baris.map((pesanan) => ({
       id: pesanan.id,
       kode: pesanan.kode,
@@ -62,6 +73,8 @@ export function antarmukaPemesanan(db: Db) {
       waktuDibuat: pesanan.waktuDibuat,
       penerbanganId: pesanan.penerbanganId,
       pemesanId: pesanan.pemesanId,
+      peranPemesan: daftarPemesan.find((a) => a.id === pesanan.pemesanId)!.peran,
+      eTiket: tiketDari(daftarETiket.find((e) => e.pemesananId === pesanan.id)),
       penumpang: daftarPenumpang
         .filter((orang) => orang.pemesananId === pesanan.id)
         .map((orang) => ({
@@ -78,7 +91,7 @@ export function antarmukaPemesanan(db: Db) {
   return {
     /**
      * alokasiKursi(kode, jumlah) pada Penerbangan, bersama pembuatan Pemesanan(WaitingForThePayment) dan Penumpang
-     * (sequence US-2a langkah 7b, 8, 9). Satu `db.batch` (satu transaksi): alokasi hanya masuk bila
+     * (sequence US-2a langkah 7b, 8, 9; US-8b langkah 5b, 6, 7 dengan satu Penumpang per pengunjung). Satu `db.batch` (satu transaksi): alokasi hanya masuk bila
      * jumlah > 0 dan jumlahKursi - kursi terpakai >= jumlah, diperiksa dan ditulis dalam satu pernyataan SQL;
      * itu implementasi atomik dari `bolehAlokasi` (domain), yang tidak bisa dipakai langsung karena hitungan
      * kursi terpakai bisa usang antara membaca dan menulis. Pemesanan serta
@@ -99,13 +112,16 @@ export function antarmukaPemesanan(db: Db) {
           INSERT INTO pemesanan (kode, kode_normal, status, waktu_dibuat, penerbangan_id, pemesan_id)
           SELECT ${b.kode}, ${kodeNormal}, ${STATUS_AWAL_BOOKING}, ${waktuDibuatMs}, ${b.penerbanganId}, ${b.pemesanId}
           WHERE EXISTS (SELECT 1 FROM alokasi_kursi WHERE kode_normal = ${kodeNormal})`),
-        db.run(sql`
-          INSERT INTO penumpang (pemesanan_id, akun_id, nama_lengkap, nomor_identitas, tanggal_lahir, nomor_telepon, email)
-          SELECT m.id, ${b.pemesanId}, ${b.data.namaLengkap}, ${b.data.nomorIdentitas}, ${b.data.tanggalLahir}, ${b.data.nomorTelepon}, ${b.data.email}
-          FROM pemesanan m
-          WHERE m.kode_normal = ${kodeNormal}
-            AND EXISTS (SELECT 1 FROM alokasi_kursi WHERE kode_normal = ${kodeNormal})
-            AND NOT EXISTS (SELECT 1 FROM penumpang x WHERE x.pemesanan_id = m.id)`),
+        // Satu pernyataan per Penumpang, masing-masing hanya bila alokasinya masuk dan akun itu belum tercantum pada pemesanan ini.
+        ...b.penumpang.map((orang) =>
+          db.run(sql`
+            INSERT INTO penumpang (pemesanan_id, akun_id, nama_lengkap, nomor_identitas, tanggal_lahir, nomor_telepon, email)
+            SELECT m.id, ${orang.akunId}, ${orang.namaLengkap}, ${orang.nomorIdentitas}, ${orang.tanggalLahir}, ${orang.nomorTelepon}, ${orang.email}
+            FROM pemesanan m
+            WHERE m.kode_normal = ${kodeNormal}
+              AND EXISTS (SELECT 1 FROM alokasi_kursi WHERE kode_normal = ${kodeNormal})
+              AND NOT EXISTS (SELECT 1 FROM penumpang x WHERE x.pemesanan_id = m.id AND x.akun_id = ${orang.akunId})`),
+        ),
       ])
       return hasil[0].rowsAffected === 1 ? 'diterima' : 'ditolak'
     },
@@ -140,6 +156,41 @@ export function antarmukaPemesanan(db: Db) {
       return hasil[0].rowsAffected > 0
     },
 
+    /**
+     * ubahStatus(kode, dari, ke) (US-8d langkah 1, simulator): status berubah hanya bila masih `dari` (penjaga atomik di SQL,
+     * jadi dua pemicu serentak tidak keduanya berhasil), bersama `efekMasuk` (pernyataan SQL yang menjaga dirinya sendiri,
+     * mis. `terbitkanETiket`) dalam satu batch. false bila status sudah bukan `dari` atau kode tidak ada.
+     */
+    async ubahStatus(kode: string, dari: StatusBooking, ke: StatusBooking, efekMasuk: PernyataanBatch[] = []): Promise<boolean> {
+      const hasil = await db.batch([
+        db.update(pemesanan).set({ status: ke }).where(and(eq(pemesanan.kodeNormal, normalKode(kode)), eq(pemesanan.status, dari))),
+        ...efekMasuk,
+      ])
+      return hasil[0].rowsAffected === 1
+    },
+
+    /**
+     * terbitkanETiket(nomor) sebagai pernyataan batch: satu ETiket untuk pemesanan itu, hanya bila pemesanan Confirmed dan
+     * belum punya e-tiket (inv ConfirmedPunyaETiket; ETiketHanyaSetelahConfirmed).
+     */
+    terbitkanETiket(kode: string, nomor: string, waktuTerbit: Date): PernyataanBatch {
+      return db.run(sql`
+        INSERT INTO etiket (pemesanan_id, nomor_e_tiket, waktu_terbit)
+        SELECT m.id, ${nomor}, ${waktuTerbit.getTime()} FROM pemesanan m
+        WHERE m.kode_normal = ${normalKode(kode)} AND m.status = 'Confirmed'
+          AND NOT EXISTS (SELECT 1 FROM etiket e WHERE e.pemesanan_id = m.id)`)
+    },
+
+    /** semuaMenurutWaktuDibuat (US-7 langkah 1): semua pemesanan, yang paling baru dibuat dulu. */
+    async semuaMenurutWaktuDibuat(): Promise<PemesananBaris[]> {
+      return lengkapi(await db.select().from(pemesanan).orderBy(desc(pemesanan.waktuDibuat), desc(pemesanan.id)))
+    },
+
+    /** denganStatus (US-7 langkah 3): pemesanan berstatus itu, yang paling baru dibuat dulu. */
+    async denganStatus(status: StatusBooking): Promise<PemesananBaris[]> {
+      return lengkapi(await db.select().from(pemesanan).where(eq(pemesanan.status, status)).orderBy(desc(pemesanan.waktuDibuat), desc(pemesanan.id)))
+    },
+
     /** Pemesanan menurut id (urutan mengikuti `ids`); dipakai perjalananTercatat. */
     async denganId(ids: number[]): Promise<PemesananBaris[]> {
       if (ids.length === 0) return []
@@ -164,6 +215,16 @@ export function antarmukaPemesanan(db: Db) {
             inArray(pemesanan.id, db.select({ id: penumpang.pemesananId }).from(penumpang).where(eq(penumpang.akunId, akunId))),
           ),
         )
+        .orderBy(desc(pemesanan.waktuDibuat), desc(pemesanan.id))
+      return lengkapi(baris)
+    },
+
+    /** yangMencantumkan(akun) (US-8c langkah 2): hanya pemesanan dengan Penumpang yang `mewakili` akun itu; terbaru dulu. */
+    async yangMencantumkan(akunId: number): Promise<PemesananBaris[]> {
+      const baris = await db
+        .select()
+        .from(pemesanan)
+        .where(inArray(pemesanan.id, db.select({ id: penumpang.pemesananId }).from(penumpang).where(eq(penumpang.akunId, akunId))))
         .orderBy(desc(pemesanan.waktuDibuat), desc(pemesanan.id))
       return lengkapi(baris)
     },
