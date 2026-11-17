@@ -15,6 +15,13 @@
       "when": 1794877225992,
       "tag": "0001_glorious_toad",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1794878933578,
+      "tag": "0002_magenta_pixie",
+      "breakpoints": true
     }
   ]
 }

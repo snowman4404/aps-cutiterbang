@@ -6,6 +6,7 @@ import { Butuh } from './akses/Butuh.tsx'
 import HalamanDaftarPengajuanCuti from './cuti/HalamanDaftarPengajuanCuti.tsx'
 import HalamanRiwayatCuti from './cuti/HalamanRiwayatCuti.tsx'
 import HalamanSisaCuti from './cuti/HalamanSisaCuti.tsx'
+import HalamanCariPenerbangan from './tiket/HalamanCariPenerbangan.tsx'
 import Beranda from './halaman/Beranda.tsx'
 import Placeholder from './halaman/Placeholder.tsx'
 import Layout from './shell/Layout.tsx'
@@ -16,6 +17,7 @@ const HALAMAN: Record<string, ReactNode> = {
   '/cuti/pengajuan': <HalamanDaftarPengajuanCuti />,
   '/cuti/riwayat': <HalamanRiwayatCuti />,
   '/cuti/sisa': <HalamanSisaCuti />,
+  '/penerbangan': <HalamanCariPenerbangan />,
 }
 
 export const router = createBrowserRouter([

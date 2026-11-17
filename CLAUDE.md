@@ -26,6 +26,23 @@ The user is on a **limited usage plan**. Spend tokens like they are scarce.
 
 `codebase.md` maps every source file to what it does. Read it before locating code. When you add, move, rename or delete a file, update `codebase.md` in the same change.
 
+## Submission report
+
+`Laporan Implementasi CutiTerbang` is the report the user submits for the assignment. It is a Claude Doc written in Indonesian for the lecturer:
+
+- Link: https://claude.ai/artifact/EwNibtK3ZAwJmbLwAFZkDC
+- Doc id: `70de5993-1ae2-4604-ba70-be73b6774d4f`
+- Prose body node: `44f83e45-bb20`
+- Architecture diagram widget: `d7783f42-dd25`
+
+Update it as part of the same task as the change, whenever one of these lands:
+
+- A roadmap phase is completed. Update "Use case yang sudah dibangun", "Kemajuan dan pekerjaan tersisa", the status sentence in "Ringkasan", and the as-of date chip in the byline.
+- A gap (Celah) is decided. Update "Keputusan desain" and the open-gap list in "Kemajuan".
+- Test counts change. Update "Pengujian" with the numbers from an actual `npm test` and `npm run test:e2e` run.
+- A module, package, route, control or boundary class is added. Update "Teknologi dan arsitektur" and redraw its diagram, keeping the existing text ids.
+- Run commands, demo accounts or the demo search cases change. Update "Menjalankan aplikasi".
+
 ## Stack
 
 npm workspaces monorepo. Scripts live in the root and each workspace's `package.json`.

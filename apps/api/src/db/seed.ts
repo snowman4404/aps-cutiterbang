@@ -6,7 +6,8 @@ import { count } from 'drizzle-orm'
 import { hashSandi } from '../akses/sandi.ts'
 import { buatDb, type Db } from './client.ts'
 import { buatDataCuti } from './dataCuti.ts'
-import { akun, hariLibur, pegawai, pengajuanCuti } from './schema.ts'
+import { buatDataPenerbangan } from './dataPenerbangan.ts'
+import { akun, hariLibur, kota, maskapai, pegawai, pengajuanCuti, penerbangan } from './schema.ts'
 
 export const SANDI_DEMO = 'rahasia123'
 
@@ -20,7 +21,7 @@ export const AKUN_DEMO: { nama: string; email: string; peran: Peran }[] = [
   { nama: 'Rizky Hidayat', email: 'pengunjung2@cutiterbang.test', peran: 'Pengunjung' },
 ]
 
-// `hariIni` bisa disuntik (tes); tanggal data cuti dihitung dari tahunnya.
+// `hariIni` bisa disuntik (tes); tanggal data cuti dihitung dari tahunnya, tanggal penerbangan dari hari ini.
 export async function seed(db: Db, hariIni = hariIniWib()) {
   const kataSandiHash = await hashSandi(SANDI_DEMO)
   await db
@@ -28,6 +29,7 @@ export async function seed(db: Db, hariIni = hariIniWib()) {
     .values(AKUN_DEMO.map((a) => ({ ...a, kataSandiHash, dibuatPada: new Date() })))
     .onConflictDoNothing({ target: akun.email })
   await seedCuti(db, tahunDari(hariIni))
+  await seedPenerbangan(db, hariIni)
 }
 
 // Data Kepegawaian (stand-in): dilewati bila pegawai sudah ada, supaya tidak menggandakan pengajuan.
@@ -45,6 +47,25 @@ async function seedCuti(db: Db, tahun: number) {
       pegawaiId: idPerNip.get(nomorIndukPegawai)!,
     })),
   )
+}
+
+// Katalog penerbangan (stand-in): Kota dan Maskapai idempoten per nama; Penerbangan dilewati bila sudah ada.
+async function seedPenerbangan(db: Db, hariIni: string) {
+  const data = buatDataPenerbangan(hariIni)
+  await db.insert(kota).values(data.kota).onConflictDoNothing({ target: kota.nama })
+  await db.insert(maskapai).values(data.maskapai).onConflictDoNothing({ target: maskapai.nama })
+  const ada = await db.select({ n: count() }).from(penerbangan).get()
+  if (ada && ada.n > 0) return
+  const idKota = new Map((await db.select().from(kota)).map((k) => [k.nama, k.id]))
+  const idMaskapai = new Map((await db.select().from(maskapai)).map((m) => [m.nama, m.id]))
+  const baris = data.penerbangan.map(({ maskapai: m, asal, tujuan, ...sisa }) => ({
+    ...sisa,
+    maskapaiId: idMaskapai.get(m)!,
+    asalId: idKota.get(asal)!,
+    tujuanId: idKota.get(tujuan)!,
+  }))
+  // Dipecah supaya tidak melewati batas jumlah variabel SQLite per pernyataan.
+  for (let i = 0; i < baris.length; i += 200) await db.insert(penerbangan).values(baris.slice(i, i + 200))
 }
 
 // CLI: `npm run db:seed`

@@ -5,10 +5,13 @@ import { ruteAuth } from './akses/rute.ts'
 import { ruteCuti } from './cuti/rute.ts'
 import type { Db } from './db/client.ts'
 import { resetData } from './db/reset.ts'
+import { rutePenerbangan } from './tiket/rute.ts'
 
 export interface OpsiApp {
   /** "Hari ini" (WIB) yang disuntik, untuk tes; bawaan: tanggal server menurut Asia/Jakarta. */
   hariIni?: TanggalIso
+  /** "Sekarang" yang disuntik, untuk tes; bawaan: jam server. Dipakai untuk /tersedia (sudah berangkat atau belum). */
+  sekarang?: () => Date
 }
 
 export function buatApp(db: Db, opsi: OpsiApp = {}) {
@@ -19,6 +22,8 @@ export function buatApp(db: Db, opsi: OpsiApp = {}) {
   app.route('/auth', ruteAuth(db))
 
   app.route('/cuti', ruteCuti(db, () => opsi.hariIni ?? hariIniWib()))
+
+  app.route('/penerbangan', rutePenerbangan(db, () => opsi.hariIni ?? hariIniWib(), () => opsi.sekarang?.() ?? new Date()))
 
   // Rute demo untuk guard peran; fase berikutnya menggantinya dengan rute sungguhan.
   app.get('/tiket/saya/ping', butuhLogin, butuhPeran('CalonPenumpang'), (c) => c.json({ ok: true }))

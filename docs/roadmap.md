@@ -34,15 +34,15 @@ Phases run in order: each one builds on the data and screens of the one before. 
 - [x] US-1c Melihat sisa cuti pegawai
 
 ## Phase 3: Flight catalog and search
-**Decision:** G1 (time zone per `Kota` so "already departed" can be computed)
-- [ ] Schema + seed: `Kota`, `Maskapai`, `Penerbangan` (with `jumlahKursi`)
-- [ ] Domain: `/sisaKursi`, `/tersedia`, `cocok()`
-- [ ] US-3 Mencari penerbangan (no login)
+**Decided (2026-11-17):** G1: `Kota` gets `zonaWaktu` (IANA zone: Asia/Jakarta = WIB, Asia/Makassar = WITA, Asia/Jayapura = WIT). `waktuBerangkatAbsolut()` converts the local departure date+time in the origin city's zone to an absolute instant; `/tersedia` compares it to now. "Today" (US-3 alur 3c) = server date in WIB. Arrival time is local to the destination city; the UI shows the zone abbreviation next to each time.
+- [x] Schema + seed: `Kota`, `Maskapai`, `Penerbangan` (with `jumlahKursi`)
+- [x] Domain: `/sisaKursi`, `/tersedia`, `cocok()`
+- [x] US-3 Mencari penerbangan (no login)
 
 ## Phase 4: Booking core
 **Decisions:** G5 (does cancelling a Confirmed booking void its e-tiket?), G8 (does a validated trip stay recorded after cancellation?)
 - [ ] Domain: `KodeBookingReference` (case/space-insensitive, unique), `DataWajib` validation, `StatusBooking` state machine, `AlokasiKursi` (no overbooking)
-- [ ] Schema: `Pemesanan`, `Penumpang`, seat allocation
+- [ ] Schema: `Pemesanan`, `Penumpang`, seat allocation. Replace the stub `jumlahPenumpangAktif` (always 0) in `apps/api/src/tiket/antarmukaKatalogPenerbangan.ts` with the real count, and add a sold-out seed flight (`sisaKursi` 0) once Pemesanan exists
 - [ ] US-2a Memesan tiket (contract C1) + "Tiket Saya"
 - [ ] US-2b Membatalkan pemesanan (contract C3)
 

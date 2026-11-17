@@ -2,3 +2,4 @@
 export const NAMA_APLIKASI = 'CutiTerbang'
 export * from './akses/index.ts'
 export * from './cuti/index.ts'
+export * from './tiket/index.ts'
