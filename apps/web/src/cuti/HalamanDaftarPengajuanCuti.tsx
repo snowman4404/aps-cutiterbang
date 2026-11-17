@@ -102,11 +102,11 @@ export default function HalamanDaftarPengajuanCuti() {
             <tbody>
               {hasil.pengajuan.map((pengajuan) => (
                 <tr key={pengajuan.id}>
-                  <td>{pengajuan.namaPegawai}</td>
-                  <td>{formatTanggal(pengajuan.tanggalMulai)}</td>
-                  <td>{formatTanggal(pengajuan.tanggalAkhir)}</td>
-                  <td className="num">{formatLama(pengajuan.lamaCuti)}</td>
-                  <td>
+                  <td data-label="Nama pegawai">{pengajuan.namaPegawai}</td>
+                  <td data-label="Tanggal mulai">{formatTanggal(pengajuan.tanggalMulai)}</td>
+                  <td data-label="Tanggal akhir">{formatTanggal(pengajuan.tanggalAkhir)}</td>
+                  <td className="num" data-label="Lama cuti">{formatLama(pengajuan.lamaCuti)}</td>
+                  <td data-label="Status">
                     <Pill varian={VARIAN_STATUS[pengajuan.status]}>{pengajuan.status}</Pill>
                   </td>
                 </tr>

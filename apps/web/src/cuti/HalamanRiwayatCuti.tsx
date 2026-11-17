@@ -43,9 +43,9 @@ export default function HalamanRiwayatCuti() {
               <tbody>
                 {data.riwayat.map((cuti) => (
                   <tr key={cuti.id}>
-                    <td>{formatTanggal(cuti.tanggalMulai)}</td>
-                    <td>{formatTanggal(cuti.tanggalAkhir)}</td>
-                    <td className="num">{formatLama(cuti.lamaCuti)}</td>
+                    <td data-label="Tanggal mulai">{formatTanggal(cuti.tanggalMulai)}</td>
+                    <td data-label="Tanggal akhir">{formatTanggal(cuti.tanggalAkhir)}</td>
+                    <td className="num" data-label="Lama cuti">{formatLama(cuti.lamaCuti)}</td>
                   </tr>
                 ))}
               </tbody>

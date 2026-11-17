@@ -2,7 +2,7 @@
 // pengiriman nyata. Pengiriman ikut dalam batch perubahan status (lihat PengendaliETiket), jadi tidak pernah ada email
 // untuk pemesanan yang tidak jadi Confirmed.
 import { desc, eq, sql } from 'drizzle-orm'
-import { normalKode, type EmailETiket, type EmailETiketDto } from '@cutiterbang/domain'
+import { normalKode, type EmailETiket, type EmailETiketDto, type EmailKotakKeluar } from '@cutiterbang/domain'
 import type { Db } from '../db/client.ts'
 import { emailTerkirim, pemesanan } from '../db/schema.ts'
 import type { PernyataanBatch } from './antarmukaPemesanan.ts'
@@ -41,6 +41,22 @@ export function antarmukaLayananEmail(db: Db) {
       for (const b of baris)
         hasil.set(b.kode, [...(hasil.get(b.kode) ?? []), { kepada: b.kepada, subjek: b.subjek, isi: b.isi, waktuKirim: b.waktuKirim.toISOString() }])
       return hasil
+    },
+
+    /** Seluruh kotak keluar, terbaru dulu (panel simulator demo). */
+    async semua(): Promise<EmailKotakKeluar[]> {
+      const baris = await db
+        .select({
+          kode: pemesanan.kode,
+          kepada: emailTerkirim.kepada,
+          subjek: emailTerkirim.subjek,
+          isi: emailTerkirim.isi,
+          waktuKirim: emailTerkirim.waktuKirim,
+        })
+        .from(emailTerkirim)
+        .innerJoin(pemesanan, eq(pemesanan.id, emailTerkirim.pemesananId))
+        .orderBy(desc(emailTerkirim.waktuKirim), desc(emailTerkirim.id))
+      return baris.map((b) => ({ ...b, waktuKirim: b.waktuKirim.toISOString() }))
     },
   }
 }

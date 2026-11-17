@@ -1,0 +1,22 @@
+# Render Blueprint: satu layanan Node (API Hono + hasil build web) dari repo GitHub ini.
+# Render: New > Blueprint > pilih repo. Tiap push ke master memicu deploy ulang.
+services:
+  - type: web
+    name: cutiterbang
+    runtime: node
+    plan: free
+    branch: master
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      # Demo: tombol Reset data dan panel Simulator demo tetap aktif di situs publik.
+      - key: IZINKAN_RESET
+        value: "1"
+      # Disk Render gratis tidak permanen: data kembali ke seed tiap server mulai (juga setelah tidur 15 menit).
+      - key: RESET_SAAT_MULAI
+        value: "1"
