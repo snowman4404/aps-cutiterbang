@@ -13,6 +13,7 @@ import HalamanMultiDestinasi from './tiket/HalamanMultiDestinasi.tsx'
 import HalamanPemesanan from './tiket/HalamanPemesanan.tsx'
 import HalamanPemesananPengunjung from './tiket/HalamanPemesananPengunjung.tsx'
 import HalamanProfil from './tiket/HalamanProfil.tsx'
+import HalamanSimulator from './tiket/HalamanSimulator.tsx'
 import HalamanStatusBooking from './tiket/HalamanStatusBooking.tsx'
 import HalamanTiketDipesankan from './tiket/HalamanTiketDipesankan.tsx'
 import HalamanTiketSaya from './tiket/HalamanTiketSaya.tsx'
@@ -63,6 +64,8 @@ export const router = createBrowserRouter([
           </HanyaUntuk>
         ),
       },
+      // Panel simulator demo (Fase 7): bukan use case, jadi bukan item MENU; tautannya di sidebar bila reset/simulator aktif.
+      { path: '/simulator', element: <HalamanSimulator /> },
       ...MENU.map((item) => {
         const halaman = HALAMAN[item.path] ?? <Placeholder item={item} />
         const terbatas = peranTerbatas(item)

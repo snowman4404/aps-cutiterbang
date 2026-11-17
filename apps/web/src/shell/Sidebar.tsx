@@ -12,7 +12,7 @@ const kelasNav = ({ isActive }: { isActive: boolean }) =>
     isActive ? 'bg-active font-medium text-ink' : 'text-muted hover:text-ink'
   }`
 
-/** Sidebar desktop; di ponsel menjadi menu layar penuh saat `menuTerbuka`. Berisi merek, menu per grup, reset demo, baris pengguna. */
+/** Sidebar desktop; di ponsel menjadi menu layar penuh saat `menuTerbuka`. Berisi merek, menu per grup, simulator dan reset demo, baris pengguna. */
 export function Sidebar({ menuTerbuka }: { menuTerbuka: boolean }) {
   const { akun } = useAuth()
   const reset = useResetDemo()
@@ -45,6 +45,11 @@ export function Sidebar({ menuTerbuka }: { menuTerbuka: boolean }) {
 
       <div className="mt-auto flex flex-col pt-6">
         {!akun && <TombolMasukDaftar className="mb-4 desk:hidden" />}
+        {reset.aktif && (
+          <NavLink to="/simulator" end className={kelasNav}>
+            Simulator demo
+          </NavLink>
+        )}
         {reset.aktif && (
           <Button varian="text" onClick={reset.resetData} disabled={reset.mereset}>
             Reset data demo

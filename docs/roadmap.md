@@ -86,7 +86,11 @@ Note: US-8b (contract C2) and US-8d read the Pengunjung's `Profil`, which Phase 
 - [x] US-9 Memeriksa status booking dengan kode booking reference
 
 ## Phase 7: Polish and submission
-- [ ] Design pass over all screens (consistent look, mobile width)
-- [ ] Simulator/dev panel to drive payment, airline and email for the demo
-- [ ] Full e2e pass; README with run instructions and demo accounts
-- [ ] Deploy: API serves the built web app as one Node service (e.g. Render/Railway), reseeding SQLite on start
+**Decided (2026-11-18):**
+- Phase 6 merged into master; Phase 7 on branch `fase-7-polish`.
+- Dev panel: its own page `/simulator` ("Simulator demo"), not a `MENU` item and not a use case, no role guard (like `/api/simulasi`). A sidebar link shows for everyone, logged in or not, when `/health` reports `resetAktif`. The panel lists every booking (kode, pemesan role, penumpang, status) with "Simulasikan pembayaran" / "Simulasikan konfirmasi maskapai", the whole email outbox ("Kotak keluar email") and "Reset data demo". Data from `GET /api/simulasi` (same gate; when off, 404 "Simulator demo tidak aktif di lingkungan ini", no spec text). The simulator column is removed from the US-7 table. Email needs no button of its own: it is sent by the airline confirmation (US-8d), the panel shows the outbox.
+- Deploy: GitHub Pages cannot run the Node API + SQLite, so the code stays on GitHub and Render deploys it from the repo (`render.yaml` Blueprint, free plan, redeploys on push to master). One Node service: `npm run build` then `npm start`; the API serves `apps/web/dist` with an SPA fallback. `IZINKAN_RESET=1` keeps simulator and reset on for the public demo; `RESET_SAAT_MULAI=1` reseeds on every start (Render free disk is not persistent; seed dates stay relative to today). The user creates the Render service (needs their account).
+- [x] Design pass over all screens (consistent look, mobile width)
+- [x] Simulator/dev panel to drive payment, airline and email for the demo
+- [x] Full e2e pass; README with run instructions and demo accounts
+- [x] Deploy: API serves the built web app as one Node service (e.g. Render/Railway), reseeding SQLite on start

@@ -45,6 +45,7 @@ async function masuk(page: Page, email: string) {
 
 const barisStatus = (page: Page) => page.getByTestId('baris-status')
 const baris = (page: Page, kode: string) => page.locator(`[data-testid="baris-status"][data-kode="${kode}"]`)
+const barisSim = (page: Page, kode: string) => page.locator(`[data-testid="baris-simulator"][data-kode="${kode}"]`)
 const kartu = (page: Page, kode: string) => page.getByTestId('tiket').filter({ has: page.getByTestId('kode').filter({ hasText: kode }) })
 
 test.describe('US-7 Memantau status booking', () => {
@@ -131,10 +132,15 @@ test.describe('US-7 Memantau status booking', () => {
 })
 
 test.describe('simulator demo dan US-8d e-tiket melalui email', () => {
-  test('tombol simulator: WaitingForThePayment -> Booked -> Confirmed; pengunjung menerima e-tiket di emailnya', async ({ page }) => {
+  test('panel simulator: WaitingForThePayment -> Booked -> Confirmed; US-7 mengikuti; pengunjung menerima e-tiket di emailnya', async ({ page }) => {
     await masuk(page, TRAVEL)
     await page.goto('/travel/status')
-    const ctb007 = baris(page, 'CTB007')
+    await expect(baris(page, 'CTB007').getByTestId('status')).toHaveText('Waiting for the payment')
+    await expect(page.getByRole('button', { name: /Simulasikan/ })).toHaveCount(0) // simulator bukan bagian dari US-7
+
+    await page.getByRole('link', { name: 'Simulator demo' }).click()
+    await expect(page).toHaveURL(/\/simulator$/)
+    const ctb007 = barisSim(page, 'CTB007')
     await expect(ctb007.getByTestId('status')).toHaveText('Waiting for the payment')
     await expect(ctb007.getByRole('button', { name: 'Simulasikan konfirmasi maskapai' })).toHaveCount(0) // hanya untuk Booked
 
@@ -145,6 +151,12 @@ test.describe('simulator demo dan US-8d e-tiket melalui email', () => {
     await ctb007.getByRole('button', { name: 'Simulasikan konfirmasi maskapai' }).click()
     await expect(ctb007.getByTestId('status')).toHaveText('Confirmed')
     await expect(ctb007.getByRole('button', { name: /Simulasikan/ })).toHaveCount(0)
+    // Kotak keluar: satu email per pengunjung CTB007, di atas (terbaru dulu).
+    const kotak = page.getByRole('list', { name: 'Kotak keluar email' }).getByTestId('email-etiket')
+    await expect(kotak.filter({ hasText: subjekETiket('CTB007') })).toHaveCount(2)
+
+    await page.goto('/travel/status')
+    await expect(baris(page, 'CTB007').getByTestId('status')).toHaveText('Confirmed')
 
     // Pengunjung: e-tiket dan email ke alamat profilnya sendiri, berisi nama semua penumpang, kode, penerbangan.
     for (const email of [P1, P3]) {
@@ -166,9 +178,12 @@ test.describe('simulator demo dan US-8d e-tiket melalui email', () => {
 
   test('tombol konfirmasi maskapai untuk Booked seed (CTB008) menerbitkan e-tiket; hanya satu email ke pengunjungnya', async ({ page }) => {
     await masuk(page, TRAVEL)
+    await page.goto('/simulator')
+    await barisSim(page, 'CTB008').getByRole('button', { name: 'Simulasikan konfirmasi maskapai' }).click()
+    await expect(barisSim(page, 'CTB008').getByTestId('status')).toHaveText('Confirmed')
     await page.goto('/travel/status?status=Booked')
-    await baris(page, 'CTB008').getByRole('button', { name: 'Simulasikan konfirmasi maskapai' }).click()
-    await expect(baris(page, 'CTB008')).toHaveCount(0) // tidak lagi Booked: hilang dari filter setelah dimuat ulang
+    await expect(page.getByTestId('baris-status').first()).toBeVisible()
+    await expect(baris(page, 'CTB008')).toHaveCount(0) // tidak lagi Booked
     await masuk(page, P1)
     await page.goto('/tiket-dipesankan')
     await expect(kartu(page, 'CTB008').getByTestId('email-etiket')).toHaveCount(1)

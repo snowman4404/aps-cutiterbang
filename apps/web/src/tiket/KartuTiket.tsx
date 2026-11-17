@@ -75,8 +75,8 @@ function ETiket({ eTiket }: { eTiket: ETiketDto }) {
   )
 }
 
-// US-8d: email e-tiket di kotak keluar Layanan Email (simulasi): alamat tujuan, waktu kirim dan isinya.
-function EmailETiket({ email }: { email: EmailETiketDto }) {
+// US-8d: email e-tiket di kotak keluar Layanan Email (simulasi): alamat tujuan, waktu kirim dan isinya. Juga dipakai panel simulator.
+export function EmailETiket({ email }: { email: EmailETiketDto }) {
   return (
     <li data-testid="email-etiket" className="flex flex-col gap-2 rounded-control bg-raised px-3 py-3 text-sm">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">

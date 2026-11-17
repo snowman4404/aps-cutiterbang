@@ -1,25 +1,22 @@
-import { useEffect, useState } from 'react'
-import type { SistemLuar } from '@cutiterbang/domain'
+import { useState } from 'react'
+import type { RingkasanSimulator, SistemLuar } from '@cutiterbang/domain'
 import { panggil } from '../lib/api.ts'
 import { useAksi } from '../lib/useAksi.ts'
-import { PESAN_GALAT_UMUM } from '../lib/useMuat.ts'
+import { PESAN_GALAT_UMUM, useMuat } from '../lib/useMuat.ts'
 
 /**
- * Simulator sistem luar untuk demo (bukan bagian dari use case mana pun): pembayaran (WaitingForThePayment -> Booked) dan
- * konfirmasi maskapai (Booked -> Confirmed, lalu e-tiket dan email). Aktif hanya bila API melaporkan `resetAktif`, sama
- * seperti reset data demo (di produksi mati kecuali IZINKAN_RESET=1). `setelah` dipanggil sesudah tiap pemicu supaya halaman memuat ulang.
- * Panel demo penuh menyusul di Fase 7.
+ * Panel simulator demo (bukan bagian dari use case mana pun): memuat semua pemesanan dan kotak keluar email dari
+ * GET /api/simulasi, lalu memicu sistem luar: pembayaran (WaitingForThePayment -> Booked) dan konfirmasi maskapai
+ * (Booked -> Confirmed, lalu e-tiket dan email). API menjawab 404 bila simulator mati (produksi tanpa IZINKAN_RESET=1).
  */
-export function useSimulator(setelah: () => void) {
-  const [aktif, setAktif] = useState(false)
+export function useSimulator() {
+  const [versi, setVersi] = useState(0)
+  const muat = useMuat<RingkasanSimulator>(`/simulasi?v=${versi}`)
+  // Ringkasan terakhir tetap tampil selama dimuat ulang setelah pemicu.
+  const [terakhir, setTerakhir] = useState<RingkasanSimulator | null>(null)
+  if (muat.data && muat.data !== terakhir) setTerakhir(muat.data)
   const [pesan, setPesan] = useState('')
   const { sibuk, jalankan } = useAksi(setPesan)
-
-  useEffect(() => {
-    void panggil<{ resetAktif?: boolean }>('/health')
-      .then((respons) => setAktif(respons.data.resetAktif === true))
-      .catch(() => setAktif(false))
-  }, [])
 
   const picu = (sistem: SistemLuar, kode: string) =>
     jalankan(async () => {
@@ -28,9 +25,9 @@ export function useSimulator(setelah: () => void) {
         const respons = await panggil<{ pesan?: string }>(`/simulasi/${sistem}/${encodeURIComponent(kode)}`, { method: 'POST' })
         if (respons.status !== 200) setPesan(respons.data.pesan ?? PESAN_GALAT_UMUM)
       } finally {
-        setelah()
+        setVersi((v) => v + 1)
       }
     })
 
-  return { aktif, sibuk, pesan, picu }
+  return { ringkasan: muat.data ?? terakhir, galat: terakhir ? '' : muat.galat, memuat: muat.memuat && !terakhir, sibuk, pesan, picu }
 }

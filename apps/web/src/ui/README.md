@@ -8,7 +8,7 @@ aksi kecil abu di sidebar, `tautan` = teks berwarna tautan; ukuran `ikon` = hany
 `<button>` mentah), Field + Input/Select (tanggal = Input type="date"), PilihanRadio (fieldset + legend + galat untuk satu
 pilihan dari beberapa), Card (default, raised), PageTitle (+ `finding`), JudulBagian (h2 di dalam halaman), Memuat
 (keterangan memuat), Pill (+ kelasPill), Chip (pressed), Kode (mono), Alert (negative/warning/neutral), EmptyState,
-DataTable (kelas `num` untuk kolom angka),
+DataTable (kelas `num` untuk kolom angka; `data-label` pada tiap `td` = nama kolom, dipakai saat baris ditumpuk di bawah 640px),
 Dialog (konfirmasi modal di atas `<dialog>`: `buka`, `onTutup`, `judul`, `aksi` berisi tombol; satu-satunya tempat bayangan),
 Statistik (angka besar `text-stat` + catatan/Pill di sebelahnya, label opsional sebagai teks sekunder 14px di bawah angka),
 Ikon (garis 16px), TombolTema (tiga keadaan: Perangkat, Terang, Gelap).

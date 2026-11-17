@@ -10,6 +10,7 @@ import {
   SANDI_DEMO,
   subjekETiket,
   type HasilSimulasi,
+  type RingkasanSimulator,
   type TiketSaya,
 } from '@cutiterbang/domain'
 import { buatApp, type OpsiApp } from '../app.ts'
@@ -262,11 +263,39 @@ describe('seed US-8d', () => {
   })
 })
 
+describe('panel simulator demo: GET /api/simulasi', () => {
+  const ringkasan = async () => (await (await kirim('/simulasi')).json()) as RingkasanSimulator
+
+  test('semua pemesanan terbaru dulu, dengan pemesan dan sistem luar yang bisa memicunya; tanpa login', async () => {
+    const r = await ringkasan()
+    expect(r.pemesanan).toHaveLength((await db.select().from(pemesanan)).length)
+    const waktu = await Promise.all(r.pemesanan.map(async (b) => (await db.select().from(pemesanan).where(eq(pemesanan.kode, b.kode)))[0]!.waktuDibuat.getTime()))
+    expect(waktu).toEqual([...waktu].sort((a, b) => b - a))
+    const baris = (kode: string) => r.pemesanan.find((b) => b.kode === kode)!
+    expect(baris('CTB007')).toMatchObject({ status: 'WaitingForThePayment', sistem: 'pembayaran', pemesan: 'Manajer Travel' })
+    expect(baris('CTB008')).toMatchObject({ status: 'Booked', sistem: 'maskapai' })
+    expect(baris('CTB009')).toMatchObject({ status: 'Confirmed', sistem: null })
+    expect(baris('CTB003').pemesan).toBe('Member Frequent Traveller')
+  })
+
+  test('kotak keluar memuat email seed CTB009 dan email baru setelah konfirmasi maskapai, terbaru dulu', async () => {
+    const awal = (await ringkasan()).email
+    expect(awal.length).toBeGreaterThan(0)
+    expect(awal.every((e) => e.kode === 'CTB009')).toBe(true)
+    expect((await konfirmasiKursi('CTB008')).status).toBe(200)
+    const akhir = (await ringkasan()).email
+    expect(akhir).toHaveLength(awal.length + 1)
+    expect(akhir[0]).toMatchObject({ kode: 'CTB008', kepada: PROFIL_DEMO[P1]!.email })
+    expect(akhir[0]!.subjek).toBe(subjekETiket('CTB008'))
+  })
+})
+
 describe('gerbang produksi (seperti dev/reset)', () => {
   test('NODE_ENV=production tanpa IZINKAN_RESET: kedua rute 404 dan tidak ada perubahan', async () => {
     await siapkan({ lingkungan: { NODE_ENV: 'production' } })
     expect((await bayar('CTB001')).status).toBe(404)
     expect((await konfirmasiKursi('CTB008')).status).toBe(404)
+    expect((await kirim('/simulasi')).status).toBe(404)
     expect(await statusDi('CTB001')).toBe('WaitingForThePayment')
     expect(await statusDi('CTB008')).toBe('Booked')
     expect(await eTiketDi('CTB008')).toHaveLength(0)
