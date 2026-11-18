@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Token gaya A "Clean & professional" (acuan: design/mockups/clean.html).
+/* Token gaya A "Clean & professional".
    Nilai berganti per tema, jadi JANGAN pakai varian `dark:` Tailwind. */
 :root {
   color-scheme: light;
