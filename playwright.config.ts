@@ -12,10 +12,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    // Pemeriksaan fungsional (npm run test:e2e); tangkapan layar gaya punya proyek sendiri.
-    { name: 'chromium', testIgnore: /visual.spec.ts/, use: { ...devices['Desktop Chrome'] } },
-    // Tangkapan layar untuk tinjauan gaya (npm run test:visual).
-    { name: 'visual', testMatch: /visual.spec.ts/, use: { ...devices['Desktop Chrome'] } },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
   webServer: [
     {

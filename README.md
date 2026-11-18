@@ -7,7 +7,7 @@ Satu aplikasi web dengan satu login untuk dua modul:
 - **A. Manajemen Cuti** (US-1a sampai US-1c): HRD Manajer melihat pengajuan cuti, riwayat cuti dan sisa cuti pegawai.
 - **B. Pemesanan Tiket** (US-2a sampai US-9): mencari, memesan, membatalkan dan memantau tiket pesawat untuk Calon Penumpang, Member Frequent Traveller, Manajer Travel dan Pengunjung.
 
-Spesifikasi lengkap ada di [docs/spesifikasi.md](docs/spesifikasi.md), urutan pembangunan di [docs/roadmap.md](docs/roadmap.md), dan peta berkas di [codebase.md](codebase.md).
+Spesifikasi lengkap ada di [docs/spesifikasi.md](docs/spesifikasi.md).
 
 ## Menjalankan secara lokal
 
@@ -25,7 +25,6 @@ Buka http://localhost:5173. API berjalan di port 8787; Vite meneruskan `/api` ke
 | `npm run dev` | API dan web bersamaan, dengan muat ulang otomatis |
 | `npm test` | Tes unit (domain) dan tes API (Vitest) |
 | `npm run test:e2e` | Tes end-to-end Playwright; kedua server dijalankan otomatis |
-| `npm run test:visual` | Tangkapan layar tinjauan gaya (terang, gelap, 1440 px dan 390 px) ke `.taste-skill/app-shots/` |
 | `npm run typecheck` | Pemeriksaan tipe semua workspace |
 | `npm run db:reset` | Bangun ulang basis data dari migrasi dan seed |
 | `npm run build` lalu `npm start` | Mode produksi lokal: satu proses Node di http://localhost:8787 yang menyajikan API dan web sekaligus |
@@ -87,4 +86,4 @@ Variabel lingkungan opsional untuk API:
 | `apps/api` | Hono di Node, SQLite melalui `@libsql/client` dan Drizzle ORM |
 | `packages/domain` | Logika domain murni (invarian, atribut turunan, mesin status), dipakai web dan API |
 | `e2e` | Tes Playwright |
-| `docs` | Spesifikasi dan roadmap |
+| `docs` | Spesifikasi |
